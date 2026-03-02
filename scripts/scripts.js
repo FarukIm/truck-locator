@@ -1,5 +1,6 @@
 const API_URL = "https://my.api.mockaroo.com/locations.json?key=935e86f0";
 const MOBILE_BREAKPOINT = 800;
+const DETAILS_TRANSITION_MS = 220;
 
 const state = {
   cardTemplate: null,
@@ -7,6 +8,7 @@ const state = {
   selectedLocationId: null,
   detailsLocationId: null,
   activeMobileView: "list",
+  detailsCloseTimeoutId: null,
 };
 
 const elements = {};
@@ -104,7 +106,6 @@ async function loadLocations() {
     }
 
     const payload = await response.json();
-    console.log(payload);
     state.locations = Array.isArray(payload)
       ? payload.map(normalizeLocation)
       : [];
@@ -137,8 +138,7 @@ function normalizeLocation(location) {
   const openValue = location[`${todayKey}_open`];
   const closeValue = location[`${todayKey}_close`];
   const isOpenToday = Boolean(openValue && closeValue);
-  const phone =
-    location.phone || location.phone_number || location.telephone || "";
+  const phone = location.phone || "N/A";
 
   return {
     ...location,
@@ -295,6 +295,7 @@ function selectLocation(location) {
   }
 
   state.selectedLocationId = location.id;
+  closeDetails();
   updateMapDetailsButtonVisibility();
   renderLocations();
   renderMap(location);
@@ -359,21 +360,33 @@ function openDetails(location) {
     return;
   }
 
+  const isAlreadySelected =
+    String(state.selectedLocationId) === String(location.id);
+
+  if (state.detailsCloseTimeoutId) {
+    window.clearTimeout(state.detailsCloseTimeoutId);
+    state.detailsCloseTimeoutId = null;
+  }
+
   state.detailsLocationId = location.id;
   state.selectedLocationId = location.id;
   renderLocations();
   updateMapDetailsButtonVisibility();
-  renderMap(location);
+  if (!isAlreadySelected) {
+    renderMap(location);
+  }
 
   elements.detailsOverlay.hidden = false;
   elements.detailsOverlay.setAttribute("aria-hidden", "false");
-  elements.detailsOverlay.classList.add("details-overlay--open");
   elements.detailsCard.innerHTML = `
     <div class="details-card__loading">
     <div class="map-loading__spinner"></div>
     <p>Loading full details…</p>
     </div>
   `;
+  window.requestAnimationFrame(() => {
+    elements.detailsOverlay.classList.add("details-overlay--open");
+  });
 
   if (window.innerWidth < MOBILE_BREAKPOINT) {
     setMobileView("map");
@@ -400,9 +413,17 @@ function openDetails(location) {
 function closeDetails() {
   state.detailsLocationId = null;
   elements.detailsOverlay.classList.remove("details-overlay--open");
-  elements.detailsOverlay.hidden = true;
   elements.detailsOverlay.setAttribute("aria-hidden", "true");
-  elements.detailsCard.innerHTML = "";
+
+  if (state.detailsCloseTimeoutId) {
+    window.clearTimeout(state.detailsCloseTimeoutId);
+  }
+
+  state.detailsCloseTimeoutId = window.setTimeout(() => {
+    elements.detailsOverlay.hidden = true;
+    elements.detailsCard.innerHTML = "";
+    state.detailsCloseTimeoutId = null;
+  }, DETAILS_TRANSITION_MS);
 }
 
 // Returns the markup for the details overlay, including contact actions and the weekly hours grid.
@@ -410,15 +431,18 @@ function buildDetailsMarkup(location) {
   const phoneMarkup = location.phone
     ? `
         <a class="details-contact" href="tel:${escapeHtml(location.phone)}">
-            <img src="assets/phone-icon.png" alt="">
+            <i class="fa-solid fa-square-phone"></i>
             <span>${escapeHtml(location.phone)}</span>
         </a>
     `
     : "";
 
   return `
+        <button class="details-card__close action" type="button">
+           <i class="fa-solid fa-x "></i>
+        </button>
         <div class="details-card__preview">
-            <img src="${buildStaticMapUrl(location, 640, 220)}" alt="${escapeHtml(location.name)} preview map">
+            <i class="fa-regular fa-image fa-8x"></i>
         </div>
         <div class="details-card__body">
             <h2>${escapeHtml(location.name)}</h2>
@@ -429,7 +453,7 @@ function buildDetailsMarkup(location) {
             <div class="details-card__meta">
                 ${phoneMarkup}
                 <button class="details-link js-details-directions" data-location-id="${location.id}" type="button">
-                    <img src="assets/direction-icon.png" alt="">
+                    <i class="fa-solid fa-car"></i>
                     <span>Get Directions</span>
                 </button>
             </div>
@@ -437,7 +461,7 @@ function buildDetailsMarkup(location) {
                 ${location.hours
                   .map(
                     (entry) => `
-                    <div class="hours-row${entry.isToday ? " hours-row--today" : ""}">
+                    <div class="hours-row ${entry.isToday ? "hours-row--today" : ""}">
                         <span>${escapeHtml(entry.day)}</span>
                         <span>${escapeHtml(entry.label)}</span>
                     </div>
@@ -452,6 +476,12 @@ function buildDetailsMarkup(location) {
 
 // Handles overlay-level actions such as closing, opening directions, and launching the location URL.
 document.addEventListener("click", (event) => {
+  const closeButton = event.target.closest(".details-card__close");
+  if (closeButton) {
+    closeDetails();
+    return;
+  }
+
   const directionsButton = event.target.closest(".js-details-directions");
   if (directionsButton) {
     openDirections(getLocationById(directionsButton.dataset.locationId));

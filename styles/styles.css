@@ -7,13 +7,15 @@
   --text-strong: #4a4a4a;
   --text-soft: #8a8a8a;
   --accent: #f79a1f;
-  --accent-soft: #6fd0c8;
+  --accent-soft: #2287ab;
   --button: #4c4c4c;
   --button-hover: #3d3d3d;
   --border: #dddddd;
   --shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   --radius: 4px;
   --font-sans: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+  --transition-fast: 180ms ease;
+  --transition-medium: 220ms ease;
 }
 
 *,
@@ -37,13 +39,23 @@ body {
 button,
 a,
 input,
-textarea,
 select {
   font: inherit;
 }
 
 button {
   cursor: pointer;
+}
+
+button,
+a {
+  transition:
+    color var(--transition-fast),
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    opacity var(--transition-fast),
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 a {
@@ -80,14 +92,6 @@ img {
   padding: 0;
 }
 
-.menu-button span {
-  background: white;
-  border-radius: 2px;
-  display: block;
-  height: 4px;
-  margin: 4px 0;
-  width: 24px;
-}
 
 .mobile-menu-icon {
   color: white;
@@ -103,10 +107,6 @@ img {
   width: 30px;
 }
 
-.brand-logo--desktop {
-  height: auto;
-  width: 147px;
-}
 
 .site-nav {
   align-items: center;
@@ -122,11 +122,6 @@ img {
   gap: 6px;
 }
 
-.site-nav__locator img,
-.mobile-locator-button img {
-  height: 17px;
-  width: 12px;
-}
 
 .locator {
   margin: 0 auto;
@@ -136,7 +131,6 @@ img {
 
 .locator__headline h1 {
   color: var(--text-strong);
-  font-size: clamp(2rem, 3vw, 3rem);
   font-weight: 400;
   letter-spacing: -0.03em;
   margin: 12px 0 6px;
@@ -168,8 +162,9 @@ img {
 }
 
 .locations-status {
+  text-align: center;
+  line-height: 30px;
   color: var(--text-soft);
-  padding: 22px;
 }
 
 .locations-list {
@@ -242,6 +237,10 @@ img {
   color: #cb6b6b;
 }
 
+.location-card__phone{
+  cursor: pointer;
+}
+
 .location-card__phone,
 .details-contact,
 .details-link {
@@ -251,11 +250,13 @@ img {
   gap: 4px;
 }
 
-.location-card__phone img,
-.details-contact img,
-.details-link img {
-  height: 13px;
-  width: 13px;
+.location-card__phone:hover,
+.location-card__phone:focus-visible,
+.details-contact:hover,
+.details-contact:focus-visible,
+.details-link:hover,
+.details-link:focus-visible {
+  color: var(--button-hover);
 }
 
 .location-card__actions {
@@ -268,6 +269,7 @@ img {
   background: var(--button);
   border: 0;
   border-radius: var(--radius);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
   color: white;
   flex: 1 1 0;
   letter-spacing: 0.01em;
@@ -279,6 +281,8 @@ img {
 .action-button:hover,
 .action-button:focus-visible {
   background: var(--button-hover);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+  transform: translateY(-1px);
 }
 
 .action-button--full {
@@ -348,22 +352,61 @@ img {
   height: 100%;
   width: 100%;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-medium);
+  z-index: 50;
 }
 
 .details-backdrop[hidden] {
   display: none;
 }
 
+.details-overlay--open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .details-card {
   background: var(--surface-strong);
   border: 1px solid #cfcfcf;
   box-shadow: var(--shadow);
+  opacity: 0;
   padding: 10px;
+  position: relative;
+  min-width: 70%;
+  transform: translateY(-50px) scale(0.98);
+  transition:
+    opacity var(--transition-medium),
+    transform var(--transition-medium),
+    box-shadow var(--transition-medium);
+}
+
+.details-overlay--open .details-card {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.details-card__close {
+  background: transparent;
+  border: none;
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  color: var(--text);
+  z-index: 20;
+}
+
+.details-card__close:hover,
+.details-card__close:focus-visible {
+  color: var(--accent);
 }
 
 .details-card__preview {
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #c8cdd3;
   min-height: 138px;
 }
@@ -412,7 +455,7 @@ img {
 .hours-row {
   color: #727272;
   display: grid;
-  gap: 12px;
+  gap: 20px;
   grid-template-columns: 86px 1fr;
 }
 
@@ -569,5 +612,16 @@ img {
   .mobile-tabs__button--active {
     background: var(--accent);
     color: white;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
