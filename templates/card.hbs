@@ -1,0 +1,31 @@
+{{#each locations}}
+<div class="location-card{{#if isSelected}} location-card--selected{{/if}}" data-location-id="{{id}}" tabindex="0">
+    <div class="location-card__header">
+        <h2>{{name}}</h2>
+        {{#if distance}}
+        <span class="location-card__distance">{{distance}}</span>
+        {{/if}}
+    </div>
+
+    <address class="location-card__address">
+        <span>{{address}}</span>
+        <span>{{city}}, {{state}} {{postal_code}}</span>
+    </address>
+
+    <p class="location-card__status{{#unless isOpenToday}} location-card__status--closed{{/unless}}">
+        {{todaySummary}}
+    </p>
+
+    {{#if phone}}
+    <p class="location-card__phone">
+        <img src="assets/phone-icon.png" alt="">
+        <span>{{phone}}</span>
+    </p>
+    {{/if}}
+
+    <div class="location-card__actions">
+        <button class="action-button js-directions" data-location-id="{{id}}" type="button">Directions</button>
+        <button class="action-button js-more-info" data-location-id="{{id}}" type="button">More Info</button>
+    </div>
+</div>
+{{/each}}

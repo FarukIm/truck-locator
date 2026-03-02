@@ -1,23 +1,74 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title></title>
+        <title>Taco Truck Locator</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
-
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-        <link href="css/styles.css" rel="stylesheet">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
-
-        <script src="https://code.jquery.com/jquery-4.0.0.min.js" integrity="sha256-OaVG6prZf4v69dPg6PhVattBXkcOWQB62pdZ3ORyrao=" crossorigin="anonymous"></script>
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+        <link href="styles/styles.css" rel="stylesheet">
         <script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>
-        <script type="text/javascript" src="scripts/scripts.js"></script>
+        <script defer src="scripts/scripts.js"></script>
     </head>
     <body>
+        <div class="page-shell">
+            <header class="site-header">
+                <div class="site-header__left">
+                    <button class="menu-button" type="button" aria-label="Open menu">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+                    <div class="brand-link" aria-label="Rio SEO">
+                        <img class="brand-logo brand-logo--desktop" src="assets/rioseo-logo.png" alt="Rio SEO">
+                        <img class="brand-logo brand-logo--mobile" src="assets/rioseo-logo-mobile.png" alt="Rio SEO">
+                    </div>
+                </div>
+                <nav class="site-nav" aria-label="Primary">
+                    <span>Menu</span>
+                    <span class="site-nav__locator">
+                        <img src="assets/location-icon.png" alt="">
+                        <span>Truck Locator</span>
+                    </span>
+                </nav>
+                <button class="mobile-locator-button" type="button" aria-label="Truck locator">
+                    <img src="assets/location-icon.png" alt="">
+                </button>
+            </header>
 
-        <!-- DEMO -->
-        <div class="map-wrap">
-            <img class="map">
+            <main class="locator">
+                <div class="locator__headline">
+                    <h1 id="summary-title">Loading taco trucks...</h1>
+                    <p id="summary-copy">Fetching locations from the locator service.</p>
+                </div>
+
+                <div class="locator__content">
+                    <section class="panel panel--list mobile-panel mobile-panel--active" id="list-panel" aria-label="Truck locations">
+                        <div class="panel__body">
+                            <div class="locations-status" id="locations-status">Loading locations…</div>
+                            <div class="locations-list" id="locations-list"></div>
+                        </div>
+                    </section>
+
+                    <section class="panel panel--map mobile-panel" id="map-panel" aria-label="Map">
+                        <div class="panel__body">
+                            <div class="map-stage" id="map-stage">
+                                <div class="map-placeholder">
+                                    <img src="assets/map-pin.png" alt="">
+                                    <p>Click a location card to load a map.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </main>
+
+            <nav class="mobile-tabs" aria-label="Mobile view switcher">
+                <button class="mobile-tabs__button mobile-tabs__button--active" data-view="list" type="button">List</button>
+                <button class="mobile-tabs__button" data-view="map" type="button">Map</button>
+            </nav>
+        </div>
+
+        <div class="details-overlay" id="details-overlay" aria-hidden="true">
+            <div class="details-overlay__backdrop" data-close-overlay="true"></div>
+            <section class="details-card" id="details-card" aria-label="Location details" tabindex="-1"></section>
         </div>
     </body>
 </html>
