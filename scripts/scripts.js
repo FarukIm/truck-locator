@@ -1,5 +1,5 @@
 const API_URL = "https://my.api.mockaroo.com/locations.json?key=935e86f0";
-const MOBILE_BREAKPOINT = 720;
+const MOBILE_BREAKPOINT = 800;
 
 const state = {
   cardTemplate: null,
@@ -18,6 +18,7 @@ async function init() {
   cacheElements();
   bindEvents();
   syncLayoutMode();
+  updateMapDetailsButtonVisibility();
 
   try {
     state.cardTemplate = await loadCardTemplate();
@@ -37,6 +38,7 @@ function cacheElements() {
   elements.mapStage = document.getElementById("map-stage");
   elements.detailsOverlay = document.getElementById("details-overlay");
   elements.detailsCard = document.getElementById("details-card");
+  elements.mapDetailsButton = document.getElementById("map-details-button");
   elements.mobileTabButtons = Array.from(
     document.querySelectorAll(".mobile-tabs__button"),
   );
@@ -56,9 +58,13 @@ function bindEvents() {
   });
 
   elements.detailsOverlay.addEventListener("click", (event) => {
-    if (event.target.dataset.closeOverlay === "true") {
+    if (event.target === elements.detailsOverlay) {
       closeDetails();
     }
+  });
+
+  elements.mapDetailsButton.addEventListener("click", () => {
+    openDetails(getLocationById(state.selectedLocationId));
   });
 
   document.addEventListener("keydown", (event) => {
@@ -88,6 +94,8 @@ async function loadLocations() {
     "Fetching locations from the locator service.",
   );
   elements.locationsStatus.textContent = "Loading locations…";
+  state.selectedLocationId = null;
+  updateMapDetailsButtonVisibility();
 
   try {
     const response = await fetch(API_URL);
@@ -96,6 +104,7 @@ async function loadLocations() {
     }
 
     const payload = await response.json();
+    console.log(payload);
     state.locations = Array.isArray(payload)
       ? payload.map(normalizeLocation)
       : [];
@@ -109,6 +118,7 @@ async function loadLocations() {
   } catch (error) {
     console.error("Location loading failed.", error);
     state.locations = [];
+    state.selectedLocationId = null;
     setSummary(
       "Unable to load taco trucks",
       "The location service could not be reached.",
@@ -236,35 +246,9 @@ function renderLocations() {
     })),
   };
 
-  const markup = state.cardTemplate
-    ? state.cardTemplate(viewModel)
-    : renderLocationsFallback(viewModel.locations);
+  const markup = state.cardTemplate(viewModel);
   elements.locationsList.innerHTML = markup;
   elements.locationsStatus.textContent = "";
-}
-
-// Provides a plain-string renderer if the Handlebars template cannot be loaded.
-function renderLocationsFallback(locations) {
-  return locations
-    .map(
-      (location) => `
-        <article class="location-card${location.isSelected ? " location-card--selected" : ""}" data-location-id="${location.id}" tabindex="0">
-            <div class="location-card__header">
-                <h2>${escapeHtml(location.name)}</h2>
-            </div>
-            <address class="location-card__address">
-                <span>${escapeHtml(location.address || "")}</span>
-                <span>${escapeHtml(`${location.city || ""}, ${location.state || ""} ${location.postal_code || ""}`.trim())}</span>
-            </address>
-            <p class="location-card__status${location.isOpenToday ? "" : " location-card__status--closed"}">${escapeHtml(location.todaySummary)}</p>
-            <div class="location-card__actions">
-                <button class="action-button js-directions" data-location-id="${location.id}" type="button">Directions</button>
-                <button class="action-button js-more-info" data-location-id="${location.id}" type="button">More Info</button>
-            </div>
-        </article>
-    `,
-    )
-    .join("");
 }
 
 // Handles delegated clicks from the list for card selection, directions, and the more-info action.
@@ -311,6 +295,7 @@ function selectLocation(location) {
   }
 
   state.selectedLocationId = location.id;
+  updateMapDetailsButtonVisibility();
   renderLocations();
   renderMap(location);
 
@@ -348,6 +333,10 @@ function renderMapPlaceholder(message) {
     `;
 }
 
+function updateMapDetailsButtonVisibility() {
+  elements.mapDetailsButton.hidden = !Boolean(state.selectedLocationId);
+}
+
 function displayMapLocation(location) {
   const latitude = encodeURIComponent(location.latitude);
   const longitude = encodeURIComponent(location.longitude);
@@ -373,16 +362,18 @@ function openDetails(location) {
   state.detailsLocationId = location.id;
   state.selectedLocationId = location.id;
   renderLocations();
+  updateMapDetailsButtonVisibility();
   renderMap(location);
 
-  elements.detailsOverlay.classList.add("details-overlay--open");
+  elements.detailsOverlay.hidden = false;
   elements.detailsOverlay.setAttribute("aria-hidden", "false");
+  elements.detailsOverlay.classList.add("details-overlay--open");
   elements.detailsCard.innerHTML = `
-        <div class="details-card__loading">
-            <div class="map-loading__spinner"></div>
-            <p>Loading full details…</p>
-        </div>
-    `;
+    <div class="details-card__loading">
+    <div class="map-loading__spinner"></div>
+    <p>Loading full details…</p>
+    </div>
+  `;
 
   if (window.innerWidth < MOBILE_BREAKPOINT) {
     setMobileView("map");
@@ -409,6 +400,7 @@ function openDetails(location) {
 function closeDetails() {
   state.detailsLocationId = null;
   elements.detailsOverlay.classList.remove("details-overlay--open");
+  elements.detailsOverlay.hidden = true;
   elements.detailsOverlay.setAttribute("aria-hidden", "true");
   elements.detailsCard.innerHTML = "";
 }
@@ -425,9 +417,8 @@ function buildDetailsMarkup(location) {
     : "";
 
   return `
-        <button class="details-card__close" type="button" aria-label="Close details" data-close-overlay="true">×</button>
         <div class="details-card__preview">
-            <img alt="${escapeHtml(location.name)} preview map">
+            <img src="${buildStaticMapUrl(location, 640, 220)}" alt="${escapeHtml(location.name)} preview map">
         </div>
         <div class="details-card__body">
             <h2>${escapeHtml(location.name)}</h2>
@@ -461,12 +452,6 @@ function buildDetailsMarkup(location) {
 
 // Handles overlay-level actions such as closing, opening directions, and launching the location URL.
 document.addEventListener("click", (event) => {
-  const closeButton = event.target.closest("[data-close-overlay='true']");
-  if (closeButton) {
-    closeDetails();
-    return;
-  }
-
   const directionsButton = event.target.closest(".js-details-directions");
   if (directionsButton) {
     openDirections(getLocationById(directionsButton.dataset.locationId));
