@@ -1,6 +1,5 @@
 const API_URL = "https://my.api.mockaroo.com/locations.json?key=935e86f0";
 const MOBILE_BREAKPOINT = 800;
-const DETAILS_TRANSITION_MS = 220;
 
 const state = {
   cardTemplate: null,
@@ -8,7 +7,6 @@ const state = {
   selectedLocationId: null,
   detailsLocationId: null,
   activeMobileView: "list",
-  detailsCloseTimeoutId: null,
 };
 
 const elements = {};
@@ -48,6 +46,13 @@ function cacheElements() {
     list: document.getElementById("list-panel"),
     map: document.getElementById("map-panel"),
   };
+  elements.detailsModal = bootstrap.Modal.getOrCreateInstance(
+    elements.detailsOverlay,
+    {
+      backdrop: false,
+      focus: true,
+    },
+  );
 }
 
 // Attaches all UI event listeners for list actions, overlay controls, mobile tabs, and responsive layout changes.
@@ -59,12 +64,6 @@ function bindEvents() {
     button.addEventListener("click", () => setMobileView(button.dataset.view));
   });
 
-  elements.detailsOverlay.addEventListener("click", (event) => {
-    if (event.target === elements.detailsOverlay) {
-      closeDetails();
-    }
-  });
-
   elements.mapDetailsButton.addEventListener("click", () => {
     openDetails(getLocationById(state.selectedLocationId));
   });
@@ -73,6 +72,11 @@ function bindEvents() {
     if (event.key === "Escape") {
       closeDetails();
     }
+  });
+
+  elements.detailsOverlay.addEventListener("hidden.bs.modal", () => {
+    state.detailsLocationId = null;
+    elements.detailsCard.innerHTML = "";
   });
 
   window.addEventListener("resize", syncLayoutMode);
@@ -138,7 +142,7 @@ function normalizeLocation(location) {
   const openValue = location[`${todayKey}_open`];
   const closeValue = location[`${todayKey}_close`];
   const isOpenToday = Boolean(openValue && closeValue);
-  const phone = location.phone || "N/A";
+  const phone = location.phone || "";
 
   return {
     ...location,
@@ -267,7 +271,7 @@ function onLocationListClick(event) {
     return;
   }
 
-  const card = event.target.closest(".location-card");
+  const card = event.target.closest(".js-location-card");
   if (card) {
     selectLocation(getLocationById(card.dataset.locationId));
   }
@@ -279,7 +283,7 @@ function onLocationListKeydown(event) {
     return;
   }
 
-  const card = event.target.closest(".location-card");
+  const card = event.target.closest(".js-location-card");
   if (!card) {
     return;
   }
@@ -363,11 +367,6 @@ function openDetails(location) {
   const isAlreadySelected =
     String(state.selectedLocationId) === String(location.id);
 
-  if (state.detailsCloseTimeoutId) {
-    window.clearTimeout(state.detailsCloseTimeoutId);
-    state.detailsCloseTimeoutId = null;
-  }
-
   state.detailsLocationId = location.id;
   state.selectedLocationId = location.id;
   renderLocations();
@@ -376,17 +375,15 @@ function openDetails(location) {
     renderMap(location);
   }
 
-  elements.detailsOverlay.hidden = false;
-  elements.detailsOverlay.setAttribute("aria-hidden", "false");
   elements.detailsCard.innerHTML = `
-    <div class="details-card__loading">
-    <div class="map-loading__spinner"></div>
-    <p>Loading full details…</p>
+    <div class="modal-content">
+      <div class="modal-body w-100 details-card__loading">
+        <div class="map-loading__spinner"></div>
+        <p class="mb-0">Loading full details…</p>
+      </div>
     </div>
   `;
-  window.requestAnimationFrame(() => {
-    elements.detailsOverlay.classList.add("details-overlay--open");
-  });
+  elements.detailsModal.show();
 
   if (window.innerWidth < MOBILE_BREAKPOINT) {
     setMobileView("map");
@@ -411,26 +408,14 @@ function openDetails(location) {
 
 // Resets overlay state and hides the details modal.
 function closeDetails() {
-  state.detailsLocationId = null;
-  elements.detailsOverlay.classList.remove("details-overlay--open");
-  elements.detailsOverlay.setAttribute("aria-hidden", "true");
-
-  if (state.detailsCloseTimeoutId) {
-    window.clearTimeout(state.detailsCloseTimeoutId);
-  }
-
-  state.detailsCloseTimeoutId = window.setTimeout(() => {
-    elements.detailsOverlay.hidden = true;
-    elements.detailsCard.innerHTML = "";
-    state.detailsCloseTimeoutId = null;
-  }, DETAILS_TRANSITION_MS);
+  elements.detailsModal.hide();
 }
 
 // Returns the markup for the details overlay, including contact actions and the weekly hours grid.
 function buildDetailsMarkup(location) {
   const phoneMarkup = location.phone
     ? `
-        <a class="details-contact" href="tel:${escapeHtml(location.phone)}">
+        <a class="details-contact text-decoration-none" href="tel:${escapeHtml(location.phone)}">
             <i class="fa-solid fa-square-phone"></i>
             <span>${escapeHtml(location.phone)}</span>
         </a>
@@ -438,50 +423,48 @@ function buildDetailsMarkup(location) {
     : "";
 
   return `
-        <button class="details-card__close action" type="button">
-           <i class="fa-solid fa-x "></i>
-        </button>
-        <div class="details-card__preview">
-            <i class="fa-regular fa-image fa-8x"></i>
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header border-0 pb-0">
+      <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body pt-3">
+      <div class="details-card__preview d-flex align-items-center justify-content-center">
+      <i class="fa-regular fa-image fa-8x text-secondary"></i>
+      </div>
+      <h2 class="fs-3 fw-normal" id="details-title">${escapeHtml(location.name)}</h2>
+        <address class="details-card__address small">
+          <span>${escapeHtml(location.address || "")}</span>
+          <span>${escapeHtml(`${location.city || ""}, ${location.state || ""} ${location.postal_code || ""}`.trim())}</span>
+        </address>
+        <div class="details-card__meta d-flex flex-wrap align-items-center justify-content-between gap-3">
+          ${phoneMarkup}
+          <button class="details-link btn btn-outline-primary btn-sm js-details-directions" data-location-id="${location.id}" type="button">
+            <i class="fa-solid fa-car"></i>
+            <span>Get Directions</span>
+          </button>
         </div>
-        <div class="details-card__body">
-            <h2>${escapeHtml(location.name)}</h2>
-            <address class="details-card__address">
-                <span>${escapeHtml(location.address || "")}</span>
-                <span>${escapeHtml(`${location.city || ""}, ${location.state || ""} ${location.postal_code || ""}`.trim())}</span>
-            </address>
-            <div class="details-card__meta">
-                ${phoneMarkup}
-                <button class="details-link js-details-directions" data-location-id="${location.id}" type="button">
-                    <i class="fa-solid fa-car"></i>
-                    <span>Get Directions</span>
-                </button>
-            </div>
-            <div class="hours-list">
-                ${location.hours
-                  .map(
-                    (entry) => `
-                    <div class="hours-row ${entry.isToday ? "hours-row--today" : ""}">
-                        <span>${escapeHtml(entry.day)}</span>
-                        <span>${escapeHtml(entry.label)}</span>
-                    </div>
-                `,
-                  )
-                  .join("")}
-            </div>
-            <button class="action-button action-button--full js-full-details" data-url="${escapeAttribute(location.url || "")}" type="button">View Full Details</button>
+        <div class="hours-list">
+          ${location.hours
+            .map(
+              (entry) => `
+                <div class="hours-row ${entry.isToday ? "hours-row--today" : ""}">
+                  <span>${escapeHtml(entry.day)}</span>
+                  <span>${escapeHtml(entry.label)}</span>
+                </div>
+              `,
+            )
+            .join("")}
         </div>
+      </div>
+      <div class="modal-footer border-0 pt-0">
+        <button class="btn btn-primary w-100 js-full-details" data-url="${escapeAttribute(location.url || "")}" type="button">View Full Details</button>
+      </div>
+    </div>
     `;
 }
 
 // Handles overlay-level actions such as closing, opening directions, and launching the location URL.
 document.addEventListener("click", (event) => {
-  const closeButton = event.target.closest(".details-card__close");
-  if (closeButton) {
-    closeDetails();
-    return;
-  }
-
   const directionsButton = event.target.closest(".js-details-directions");
   if (directionsButton) {
     openDirections(getLocationById(directionsButton.dataset.locationId));

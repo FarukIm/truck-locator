@@ -1,31 +1,37 @@
 {{#each locations}}
-<div class="location-card{{#if isSelected}} location-card--selected{{/if}}" data-location-id="{{id}}" tabindex="0">
-    <div class="location-card__header">
-        <h2>{{name}}</h2>
+<div
+    class="js-location-card card h-100 mb-3 shadow-sm cursor-pointer {{#if isSelected}}bg--selected shadow{{else}} border-light-subtle{{/if}}"
+    data-location-id="{{id}}"
+    tabindex="0"
+>
+    <div class="card-body">
+        <div class="d-flex align-items-start justify-content-between gap-3">
+            <h2 class="h5 mb-0">{{name}}</h2>
         {{#if distance}}
-        <span class="location-card__distance">{{distance}}</span>
+            <span class="text-body-secondary small text-nowrap">{{distance}}</span>
         {{/if}}
-    </div>
+        </div>
 
-    <address class="location-card__address">
-        <span>{{address}}</span>
-        <span>{{city}}, {{state}} {{postal_code}}</span>
-    </address>
+        <address class="mb-0 mt-3 text-body-secondary small">
+            <span class="d-block">{{address}}</span>
+            <span class="d-block">{{city}}, {{state}} {{postal_code}}</span>
+        </address>
 
-    <p class="location-card__status{{#unless isOpenToday}} location-card__status--closed{{/unless}}">
-        {{todaySummary}}
-    </p>
+        <p class="mb-2 mt-3 fw-medium {{#if isOpenToday}}text-success{{else}}text-danger{{/if}}">
+            {{todaySummary}}
+        </p>
 
-    {{#if phone}}
-    <p class="location-card__phone">
-        <i class="fa-solid fa-square-phone"></i>
-        <span>{{phone}}</span>
-    </p>
-    {{/if}}
+        {{#if phone}}
+        <p class="mb-0 d-inline-flex align-items-center gap-2 text-primary">
+            <i class="fa-solid fa-square-phone"></i>
+            <span>{{phone}}</span>
+        </p>
+        {{/if}}
 
-    <div class="location-card__actions">
-        <button class="action-button js-directions" data-location-id="{{id}}" type="button">Directions</button>
-        <button class="action-button js-more-info" data-location-id="{{id}}" type="button">More Info</button>
+        <div class="d-flex flex- gap-2 mt-3 ">
+            <button class="btn btn-primary js-directions text-uppercase flex-grow-1" data-location-id="{{id}}" type="button">Directions</button>
+            <button class="btn btn-primary js-more-info text-uppercase flex-grow-1" data-location-id="{{id}}" type="button">More Info</button>
+        </div>
     </div>
 </div>
 {{/each}}
