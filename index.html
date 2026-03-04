@@ -52,8 +52,8 @@
         class="d-none d-md-inline-block site-nav d-flex align-items-center gap-4 small"
         aria-label="Primary"
       >
-        <span>Menu</span>
-        <span class="d-inline-flex align-items-center gap-2">
+        <span class="cursor-pointer">Menu</span>
+        <span class="d-inline-flex align-items-center ms-5 cursor-pointer">
           <i class="fa-solid fa-location-dot"></i>
           <span>Truck Locator</span>
         </span>
@@ -68,7 +68,7 @@
     </header>
 
     <main class="locator mx-auto">
-      <div class="d-none d-md-block locator__headline mb-4 mt-5">
+      <div class="d-none d-md-block mb-4 mt-5">
         <h1 id="summary-title" class="fw-normal text-body-emphasis mb-1">
           Loading taco trucks...
         </h1>
@@ -76,7 +76,7 @@
 
       <div class="locator__content">
         <section
-          class="panel panel--list mobile-panel d-block"
+          class="panel mobile-panel"
           id="list-panel"
           aria-label="Truck locations"
         >
@@ -95,7 +95,7 @@
         </section>
 
         <section
-          class="panel mobile-panel d-none d-md-block"
+          class="panel mobile-panel"
           id="map-panel"
           aria-label="Map"
         >

@@ -14,7 +14,7 @@ const elements = {};
 
 document.addEventListener("DOMContentLoaded", init);
 
-// Bootstraps the app by caching DOM nodes, wiring events, loading the card template, and fetching locations.
+// Initializes the app
 async function init() {
   cacheElements();
   bindEvents();
@@ -88,7 +88,7 @@ function bindEvents() {
   window.addEventListener("resize", syncLayoutMode);
 }
 
-// Fetches and compiles the Handlebars card template used to render the location list.
+// Fetches and compiles the Handlebars card template used to render the location list
 async function loadCardTemplate() {
   const response = await fetch("templates/card.hbs");
   if (!response.ok) {
@@ -99,7 +99,7 @@ async function loadCardTemplate() {
   return Handlebars.compile(source);
 }
 
-// Requests location data from the API and updates the summary, list, and map placeholder states.
+// Gets location data from, applies api mock data if api fails
 async function loadLocations() {
   setSummary(
     "Loading taco trucks...",
@@ -127,6 +127,7 @@ async function loadLocations() {
   }
 }
 
+// Fetch helper
 async function fetchLocationsFrom(url) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -136,6 +137,7 @@ async function fetchLocationsFrom(url) {
   return response.json();
 }
 
+// Updates locations and re-renders components
 function applyLocationsPayload(payload) {
   state.locations = Array.isArray(payload) ? payload.map(normalizeLocation) : [];
   renderSummary();
@@ -146,7 +148,7 @@ function applyLocationsPayload(payload) {
   }
 }
 
-// Normalizes raw API data into the view model used across cards, map actions, and the details overlay.
+// Normalizes API data into a more usable format
 function normalizeLocation(location) {
   const hours = getHoursForLocation(location);
   const todayName = getTodayName();
@@ -154,7 +156,7 @@ function normalizeLocation(location) {
   const openValue = location[`${todayKey}_open`];
   const closeValue = location[`${todayKey}_close`];
   const isOpenToday = Boolean(openValue && closeValue);
-  const phone = location.phone || "";
+  const phone = location.phone || "123 123 123";
 
   return {
     ...location,
@@ -174,7 +176,7 @@ function normalizeLocation(location) {
   };
 }
 
-// Builds a weekly hours array for a single location and flags the current day for emphasis in the overlay.
+// Builds a weekly hours array for a single location and flags the current day for emphasis
 function getHoursForLocation(location) {
   const days = [
     "Monday",
@@ -200,7 +202,7 @@ function getHoursForLocation(location) {
   });
 }
 
-// Updates the page headline with the truck count and the dominant postal code from the current dataset.
+// Updates the page headline with the truck count and the dominant postal code from the current dataset
 function renderSummary() {
   const count = state.locations.length;
   const postalCode = getPrimaryPostalCode();
@@ -212,7 +214,7 @@ function renderSummary() {
   );
 }
 
-// Finds the postal code that appears most often so the summary can mirror the supplied mock headline.
+// Finds the postal code that appears most often for header
 function getPrimaryPostalCode() {
   const counts = new Map();
 
@@ -240,12 +242,12 @@ function getPrimaryPostalCode() {
   return selectedCode;
 }
 
-// Sets the main headline
+// Sets the main header
 function setSummary(title) {
   elements.summaryTitle.textContent = title;
 }
 
-// Renders the list of cards, marking the currently selected location when applicable.
+// Renders the list of cards, marking the currently selected location when applicable
 function renderLocations() {
   if (state.locations.length === 0) {
     elements.locationsList.innerHTML = "";
@@ -265,7 +267,7 @@ function renderLocations() {
   elements.locationsStatus.textContent = "";
 }
 
-// Handles delegated clicks from the list for card selection, directions, and the more-info action.
+// Handles delegated clicks from the list for card actions
 function onLocationListClick(event) {
   const directionsButton = event.target.closest(".js-directions");
   if (directionsButton) {
@@ -287,7 +289,7 @@ function onLocationListClick(event) {
   }
 }
 
-// Lets keyboard users select a focused card with Enter or Space.
+// Lets keyboard users select a focused card with Enter or Space
 function onLocationListKeydown(event) {
   if (event.key !== "Enter" && event.key !== " ") {
     return;
@@ -302,7 +304,7 @@ function onLocationListKeydown(event) {
   selectLocation(getLocationById(card.dataset.locationId));
 }
 
-// Marks a location as selected, re-renders the list state, and loads its map.
+// Marks a location as selected, re-renders the list state, and loads its map
 function selectLocation(location) {
   if (!location) {
     return;
@@ -319,7 +321,7 @@ function selectLocation(location) {
   }
 }
 
-// Shows a loading state and then asynchronously swaps in a Google Maps iframe for the selected coordinates.
+// Shows a loading state and then shows map
 function renderMap(location) {
   if (!location) {
     renderMapPlaceholder("Click a location card to load a map.");
@@ -358,6 +360,7 @@ function updateMapDetailsButtonVisibility() {
   elements.mapDetailsButton.hidden = !shouldShow;
 }
 
+// Displays the map for a given location
 function displayMapLocation(location) {
   const latitude = encodeURIComponent(location.latitude);
   const longitude = encodeURIComponent(location.longitude);
@@ -374,7 +377,7 @@ function displayMapLocation(location) {
     `;
 }
 
-// Opens the details overlay, keeps the list/map selection in sync, and renders the expanded location view asynchronously.
+// Opens the details modal
 function openDetails(location) {
   if (!location) {
     return;
@@ -405,33 +408,24 @@ function openDetails(location) {
     setMobileView("map");
   }
 
-  window.setTimeout(() => {
     if (state.detailsLocationId !== location.id) {
       return;
     }
 
     elements.detailsCard.innerHTML = buildDetailsMarkup(location);
     elements.detailsCard.focus();
-
-    const previewImage = elements.detailsCard.querySelector(
-      ".details-card__preview img",
-    );
-    if (previewImage) {
-      previewImage.src = buildStaticMapUrl(location, 640, 220);
-    }
-  }, 180);
 }
 
-// Resets overlay state and hides the details modal.
+// Close details modal
 function closeDetails() {
   elements.detailsModal.hide();
 }
 
-// Returns the markup for the details overlay, including contact actions and the weekly hours grid.
+// Markup for details modal
 function buildDetailsMarkup(location) {
   const phoneMarkup = location.phone
     ? `
-        <a class="details-contact text-decoration-none" href="tel:${escapeHtml(location.phone)}">
+        <a class="btn btn-secondary btn-sm p-0" href="tel:${escapeHtml(location.phone)}">
             <i class="fa-solid fa-square-phone"></i>
             <span>${escapeHtml(location.phone)}</span>
         </a>
@@ -443,21 +437,18 @@ function buildDetailsMarkup(location) {
       <div class="modal-header border-0 pb-0">
       <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body pt-3">
+      <div class="modal-body pt-1">
       <div class="details-card__preview d-flex align-items-center justify-content-center">
-      <img
-        alt="Map preview for ${escapeAttribute(location.name)}"
-        class="w-100"
-      />
+        <i class="fa-regular fa-image fa-7x" style="color: #eeeeee;"></i>
       </div>
-      <h2 class="fs-3 fw-normal" id="details-title">${escapeHtml(location.name)}</h2>
-        <address class="d-flex flex-column small">
+      <h2 class="fs-3 fw-normal my-2" id="details-title">${escapeHtml(location.name)}</h2>
+        <address class="d-flex flex-column mb-1 mb-md-2">
           <span>${escapeHtml(location.address || "")}</span>
           <span>${escapeHtml(`${location.city || ""}, ${location.state || ""} ${location.postal_code || ""}`.trim())}</span>
         </address>
-        <div class="mt-md-1 mb-md-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-start gap-3 mb-1 md-mb-2">
           ${phoneMarkup}
-          <button class="btn btn-secondary btn-sm js-details-directions" data-location-id="${location.id}" type="button">
+          <button class="btn btn-secondary p-0 btn-sm js-details-directions" data-location-id="${location.id}" type="button">
             <i class="fa-solid fa-car"></i>
             <span>Get Directions</span>
           </button>
@@ -482,7 +473,7 @@ function buildDetailsMarkup(location) {
     `;
 }
 
-// Handles overlay-level actions such as closing, opening directions, and launching the location URL.
+// Handles click events on the details modal
 document.addEventListener("click", (event) => {
   const directionsButton = event.target.closest(".js-details-directions");
   if (directionsButton) {
@@ -499,7 +490,7 @@ document.addEventListener("click", (event) => {
   }
 });
 
-// Opens Google Maps directions in a new tab using the selected location address as the destination.
+// Opens Google Maps directions in a new tab using the selected location coordinates
 function openDirections(location) {
   if (!location) {
     return;
@@ -515,14 +506,7 @@ function openDirections(location) {
   );
 }
 
-// Builds a static map URL for the details preview image.
-function buildStaticMapUrl(location, width, height) {
-  const latitude = encodeURIComponent(location.latitude);
-  const longitude = encodeURIComponent(location.longitude);
-  return `https://staticmap.openstreetmap.de/staticmap.php?center=${latitude},${longitude}&zoom=13&size=${width}x${height}&markers=${latitude},${longitude},red-pushpin`;
-}
-
-// Toggles the mobile list/map view and keeps the tab button state aligned with the visible panel.
+// Toggles the mobile list/map view and keeps the tab button state aligned with the visible panel
 function setMobileView(view) {
   state.activeMobileView = view;
   const isDesktop = window.innerWidth >= MOBILE_BREAKPOINT;
@@ -543,7 +527,7 @@ function setMobileView(view) {
   updateMapDetailsButtonVisibility();
 }
 
-// Applies the correct panel visibility rules when crossing between desktop and mobile layouts.
+// Applies the correct panel visibility rules when crossing between desktop and mobile layouts
 function syncLayoutMode() {
   const isDesktop = window.innerWidth >= MOBILE_BREAKPOINT;
   if (isDesktop) {
@@ -572,7 +556,7 @@ function syncLayoutMode() {
   setMobileView(state.activeMobileView);
 }
 
-// Looks up a location object by id from the in-memory dataset.
+// Looks up a location object by id
 function getLocationById(locationId) {
   return (
     state.locations.find(
@@ -581,14 +565,14 @@ function getLocationById(locationId) {
   );
 }
 
-// Returns the current weekday name so today's hours can be highlighted.
+// Returns the current weekday name so today's hours can be highlighted
 function getTodayName() {
   return new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(
     new Date(),
   );
 }
 
-// Escapes user-visible strings before inserting them into HTML.
+// Escapes user-visible strings before inserting them into HTML
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")

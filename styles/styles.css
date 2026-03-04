@@ -140,21 +140,6 @@ body {
   min-height: 0;
 }
 
-.details-contact,
-.details-link {
-  align-items: center;
-  color: var(--accent);
-  display: inline-flex;
-  gap: 4px;
-}
-
-.details-contact:hover,
-.details-contact:focus-visible,
-.details-link:hover,
-.details-link:focus-visible {
-  color: var(--button-hover);
-}
-
 .map-shell {
   height: 100%;
 }
