@@ -156,7 +156,7 @@ function normalizeLocation(location) {
   const openValue = location[`${todayKey}_open`];
   const closeValue = location[`${todayKey}_close`];
   const isOpenToday = Boolean(openValue && closeValue);
-  const phone = location.phone || "123 123 123";
+  const phone = location.phone || "";
 
   return {
     ...location,
