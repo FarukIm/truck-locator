@@ -34,6 +34,7 @@ async function init() {
 function cacheElements() {
   elements.summaryTitle = document.getElementById("summary-title");
   elements.locationsStatus = document.getElementById("locations-status");
+  elements.locationsError = document.getElementById("locations-error");
   elements.locationsList = document.getElementById("locations-list");
   elements.mapStage = document.getElementById("map-stage");
   elements.detailsOverlay = document.getElementById("details-overlay");
@@ -83,6 +84,7 @@ function bindEvents() {
   elements.detailsOverlay.addEventListener("hidden.bs.modal", () => {
     state.detailsLocationId = null;
     elements.detailsCard.innerHTML = "";
+    updateMapDetailsButtonVisibility();
   });
 
   window.addEventListener("resize", syncLayoutMode);
@@ -101,23 +103,27 @@ async function loadCardTemplate() {
 
 // Gets location data from, applies api mock data if api fails
 async function loadLocations() {
-  setSummary(
-    "Loading taco trucks...",
-  );
-  elements.locationsStatus.textContent = "Loading locations...";
+  setSummary("Loading taco trucks...");
+  setLocationsError("");
+  setLocationsStatus("Loading locations...", true);
   state.selectedLocationId = null;
   updateMapDetailsButtonVisibility();
 
   try {
     const payload = await fetchLocationsFrom(API_URL);
+    setLocationsError("");
     applyLocationsPayload(payload);
   } catch (error) {
     console.error("Location loading failed.", error);
     try {
       const fallbackPayload = await fetchLocationsFrom(MOCK_API_URL);
       applyLocationsPayload(fallbackPayload);
+      setSummary("Using mock data, API fail");
+      setLocationsError("Using mock data, API fail");
     } catch (fallbackError) {
       console.error("Mock fallback loading failed.", fallbackError);
+      setSummary("Unable to load locations.");
+      setLocationsError("Unable to load locations.");
       state.locations = [];
       state.selectedLocationId = null;
       renderSummary();
@@ -139,7 +145,9 @@ async function fetchLocationsFrom(url) {
 
 // Updates locations and re-renders components
 function applyLocationsPayload(payload) {
-  state.locations = Array.isArray(payload) ? payload.map(normalizeLocation) : [];
+  state.locations = Array.isArray(payload)
+    ? payload.map(normalizeLocation)
+    : [];
   renderSummary();
   renderLocations();
 
@@ -209,9 +217,7 @@ function renderSummary() {
   const headline =
     count === 1 ? "Found 1 Taco Truck" : `Found ${count} Taco Trucks`;
 
-  setSummary(
-    `${headline}${postalCode ? ` in ${postalCode}` : ""}`,
-  );
+  setSummary(`${headline}${postalCode ? ` in ${postalCode}` : ""}`);
 }
 
 // Finds the postal code that appears most often for header
@@ -251,7 +257,7 @@ function setSummary(title) {
 function renderLocations() {
   if (state.locations.length === 0) {
     elements.locationsList.innerHTML = "";
-    elements.locationsStatus.textContent = "No locations available.";
+    setLocationsStatus("No locations available.");
     return;
   }
 
@@ -264,7 +270,56 @@ function renderLocations() {
 
   const markup = state.cardTemplate(viewModel);
   elements.locationsList.innerHTML = markup;
-  elements.locationsStatus.textContent = "";
+  setLocationsStatus("");
+}
+
+// Loading spinner for fetching locations
+function setLocationsStatus(message, isLoading = false) {
+  const centeredClasses = [
+    "d-flex",
+    "flex-column",
+    "align-items-center",
+    "justify-content-center",
+    "h-100",
+  ];
+
+  elements.locationsStatus.classList.remove("locations-status--loading");
+  elements.locationsStatus.classList.remove(...centeredClasses);
+
+  if (!message) {
+    elements.locationsStatus.innerHTML = "";
+    elements.locationsStatus.classList.add("d-none");
+    elements.locationsList.classList.remove("d-none");
+    return;
+  }
+
+  elements.locationsStatus.classList.remove("d-none");
+
+  if (isLoading) {
+    elements.locationsStatus.classList.add("locations-status--loading");
+    elements.locationsStatus.innerHTML = `
+      <div class="map-loading__spinner" aria-hidden="true"></div>
+      <p class="mb-0">${escapeHtml(message)}</p>
+    `;
+    elements.locationsList.classList.add("d-none");
+    return;
+  }
+
+  elements.locationsStatus.textContent = message;
+  elements.locationsStatus.classList.add(...centeredClasses);
+  elements.locationsList.classList.add("d-none");
+}
+
+// Error message for for mobile
+function setLocationsError(message) {
+  if (!message) {
+    elements.locationsError.textContent = "";
+    elements.locationsError.classList.add("d-none");
+    return;
+  }
+
+  elements.locationsError.textContent = message;
+  elements.locationsError.classList.remove("d-none");
 }
 
 // Handles delegated clicks from the list for card actions
@@ -344,7 +399,6 @@ function renderMap(location) {
 function renderMapPlaceholder(message) {
   elements.mapStage.innerHTML = `
         <div class="d-flex flex-column align-items-center justify-content-center gap-3 h-100 p-4 text-center">
-            <img src="assets/map-pin.png" alt="">
             <p>${escapeHtml(message)}</p>
         </div>
     `;
@@ -408,12 +462,12 @@ function openDetails(location) {
     setMobileView("map");
   }
 
-    if (state.detailsLocationId !== location.id) {
-      return;
-    }
+  if (state.detailsLocationId !== location.id) {
+    return;
+  }
 
-    elements.detailsCard.innerHTML = buildDetailsMarkup(location);
-    elements.detailsCard.focus();
+  elements.detailsCard.innerHTML = buildDetailsMarkup(location);
+  elements.detailsCard.focus();
 }
 
 // Close details modal
@@ -530,30 +584,29 @@ function setMobileView(view) {
 // Applies the correct panel visibility rules when crossing between desktop and mobile layouts
 function syncLayoutMode() {
   const isDesktop = window.innerWidth >= MOBILE_BREAKPOINT;
-  if (isDesktop) {
-    elements.mobilePanels.list.classList.remove("d-none");
-    elements.mobilePanels.map.classList.remove("d-none");
-    elements.mobilePanels.list.classList.add("d-block");
-    elements.mobilePanels.map.classList.add("d-block");
-    elements.mobileTabButtons.forEach((button) => {
-      button.classList.toggle(
-        "active",
-        button.dataset.view === state.activeMobileView,
-      );
-      button.classList.toggle(
-        "mobile-tabs__button--active",
-        button.dataset.view === state.activeMobileView,
-      );
-      button.setAttribute(
-        "aria-current",
-        button.dataset.view === state.activeMobileView ? "page" : "false",
-      );
-    });
-    updateMapDetailsButtonVisibility();
+  if (!isDesktop) {
+    setMobileView(state.activeMobileView);
     return;
   }
-
-  setMobileView(state.activeMobileView);
+  elements.mobilePanels.list.classList.remove("d-none");
+  elements.mobilePanels.map.classList.remove("d-none");
+  elements.mobilePanels.list.classList.add("d-block");
+  elements.mobilePanels.map.classList.add("d-block");
+  elements.mobileTabButtons.forEach((button) => {
+    button.classList.toggle(
+      "active",
+      button.dataset.view === state.activeMobileView,
+    );
+    button.classList.toggle(
+      "mobile-tabs__button--active",
+      button.dataset.view === state.activeMobileView,
+    );
+    button.setAttribute(
+      "aria-current",
+      button.dataset.view === state.activeMobileView ? "page" : "false",
+    );
+  });
+  updateMapDetailsButtonVisibility();
 }
 
 // Looks up a location object by id

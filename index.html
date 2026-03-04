@@ -31,7 +31,10 @@
         type="button"
         aria-label="Open menu"
       >
-        <i class="fa-solid fa-bars mobile-menu-icon fa-xl" style="color: white;"></i>
+        <i
+          class="fa-solid fa-bars mobile-menu-icon fa-xl"
+          style="color: white"
+        ></i>
       </button>
       <div class="d-inline-flex">
         <img
@@ -62,11 +65,11 @@
         type="button"
         aria-label="Truck locator"
       >
-        <i class="fa-solid fa-location-dot fa-xl" style="color:white;"></i>
+        <i class="fa-solid fa-location-dot fa-xl" style="color: white"></i>
       </button>
     </header>
 
-    <main class="locator mx-auto">
+    <main class="locator mx-auto w-100">
       <div class="d-none d-md-block mb-4 mt-5">
         <h1 id="summary-title" class="fw-normal text-body-emphasis mb-1">
           Loading taco trucks...
@@ -74,17 +77,22 @@
       </div>
 
       <div class="locator__content">
-        <section
-          class="panel mobile-panel"
-          id="list-panel"
-          aria-label="Truck locations"
-        >
-          <div class="h-100">
+        <section class="panel" id="list-panel" aria-label="Truck locations">
+          <div class="h-100 d-flex flex-column">
             <div
-              class="text-center text-body-secondary lh-lg"
+              class="alert alert-warning rounded-0 border-0 mb-0 py-2 px-3 d-none d-md-none"
+              id="locations-error"
+              role="status"
+              aria-live="polite"
+            ></div>
+            <div
+              class="locations-status--loading text-center text-body-secondary lh-lg"
               id="locations-status"
+              role="status"
+              aria-live="polite"
             >
-              Loading locations…
+              <div class="map-loading__spinner" aria-hidden="true"></div>
+              <p class="mb-0">Loading locations...</p>
             </div>
             <div
               class="locations-list d-flex flex-column gap-3 overflow-auto p-3"
@@ -93,11 +101,7 @@
           </div>
         </section>
 
-        <section
-          class="panel mobile-panel"
-          id="map-panel"
-          aria-label="Map"
-        >
+        <section class="panel" id="map-panel" aria-label="Map">
           <div class="h-100 position-relative">
             <div class="map-shell h-100">
               <div class="map-stage overflow-hidden h-100" id="map-stage">
