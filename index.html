@@ -1,5 +1,5 @@
 <!doctype html>
-<htm lang="en">
+<html lang="en">
   <head>
     <title>Taco Truck Locator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -23,99 +23,132 @@
     <script defer src="scripts/scripts.js"></script>
   </head>
   <body>
-      <header class="site-header">
-        <button class="menu-button" type="button" aria-label="Open menu">
-          <i class="fa-solid fa-bars mobile-menu-icon"></i>
-        </button>
-        <div class="brand-link" aria-label="Rio SEO">
-          <img
-            class="brand-logo brand-logo--desktop"
-            src="assets/rioseo-logo.png"
-            alt="Rio SEO"
-          />
-          <img
-            class="brand-logo brand-logo--mobile"
-            src="assets/rioseo-logo-mobile.png"
-            alt="Rio SEO"
-          />
-        </div>
-        <nav class="site-nav" aria-label="Primary">
-          <span>Menu</span>
-          <span class="site-nav__locator">
-            <i class="fa-solid fa-location-dot"></i>
-            <span>Truck Locator</span>
-          </span>
-        </nav>
-        <button
-          class="mobile-locator-button"
-          type="button"
-          aria-label="Truck locator"
-        >
+    <header
+      class="site-header d-flex align-items-center justify-content-between mx-auto p-2 pb-2 bg-dark bg-md-white"
+    >
+      <button
+        class="d-md-none btn p-0 border-0 bg-transparent"
+        type="button"
+        aria-label="Open menu"
+        style="color: white;"
+      >
+        <i class="fa-solid fa-bars mobile-menu-icon"></i>
+      </button>
+      <div class="d-inline-flex">
+        <img
+          class="d-none d-md-inline-block"
+          src="assets/rioseo-logo.png"
+          alt="Rio SEO"
+          aria-label="Rio SEO"
+        />
+        <img
+          class="d-md-none"
+          src="assets/rioseo-logo-mobile.png"
+          alt="Rio SEO"
+          aria-label="Rio SEO"
+        />
+      </div>
+      <nav
+        class="d-none d-md-inline-block site-nav d-flex align-items-center gap-4 small"
+        aria-label="Primary"
+      >
+        <span>Menu</span>
+        <span class="d-inline-flex align-items-center gap-2">
           <i class="fa-solid fa-location-dot"></i>
-        </button>
-      </header>
-
-      <main class="locator">
-        <div class="locator__headline">
-          <h1 id="summary-title">Loading taco trucks...</h1>
-          <p id="summary-copy">Fetching locations from the locator service.</p>
-        </div>
-
-        <div class="locator__content">
-          <section
-            class="panel panel--list mobile-panel mobile-panel--active"
-            id="list-panel"
-            aria-label="Truck locations"
-          >
-            <div class="panel__body">
-              <div class="locations-status" id="locations-status">
-                Loading locations…
-              </div>
-              <div class="locations-list" id="locations-list"></div>
-            </div>
-          </section>
-
-          <section class="panel mobile-panel" id="map-panel" aria-label="Map">
-            <div class="panel__body position-relative">
-              <div class="map-shell">
-                <div class="map-stage" id="map-stage">
-                  <div class="map-placeholder">
-                    <p>Click a location card to load a map.</p>
-                  </div>
-                </div>
-                <div
-                  class="modal fade"
-                  id="details-overlay"
-                >
-                  <div class="modal-dialog">
-                    <div id="details-card"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <button
-              id="map-details-button"
-              type="button"
-              class="action-button map-button"
-              hidden
-            >
-              View Details
-            </button>
-          </section>
-        </div>
-      </main>
-
-      <nav class="mobile-tabs" aria-label="Mobile view switcher">
-        <button
-          class="mobile-tabs__button mobile-tabs__button--active"
-          data-view="list"
-          type="button"
-        >
-          List
-        </button>
-        <button class="mobile-tabs__button" data-view="map" type="button">
-          Map
-        </button>
+          <span>Truck Locator</span>
+        </span>
       </nav>
+      <button
+        class="d-md-none p-0 border-0 bg-transparent"
+        type="button"
+        aria-label="Truck locator"
+      >
+        <i class="fa-solid fa-location-dot" style="color:white;"></i>
+      </button>
+    </header>
+
+    <main class="locator mx-auto">
+      <div class="d-none d-md-block locator__headline mb-4 mt-5">
+        <h1 id="summary-title" class="fw-normal text-body-emphasis mb-1">
+          Loading taco trucks...
+        </h1>
+      </div>
+
+      <div class="locator__content">
+        <section
+          class="panel panel--list mobile-panel d-block"
+          id="list-panel"
+          aria-label="Truck locations"
+        >
+          <div class="h-100">
+            <div
+              class="text-center text-body-secondary lh-lg"
+              id="locations-status"
+            >
+              Loading locations…
+            </div>
+            <div
+              class="locations-list d-flex flex-column gap-3 overflow-auto p-3"
+              id="locations-list"
+            ></div>
+          </div>
+        </section>
+
+        <section
+          class="panel mobile-panel d-none d-md-block"
+          id="map-panel"
+          aria-label="Map"
+        >
+          <div class="h-100 position-relative">
+            <div class="map-shell h-100">
+              <div class="map-stage overflow-hidden h-100" id="map-stage">
+                <div
+                  class="d-flex flex-column align-items-center justify-content-center gap-3 h-100 p-4 text-center"
+                >
+                  <p>Click a location card to load a map.</p>
+                </div>
+              </div>
+            </div>
+            <div class="modal fade" id="details-overlay">
+              <div class="modal-dialog w-100 h-100">
+                <div id="details-card"></div>
+              </div>
+            </div>
+          </div>
+          <button
+            id="map-details-button"
+            type="button"
+            class="d-md-none btn btn-primary text-uppercase"
+            hidden
+          >
+            View Details
+          </button>
+        </section>
+      </div>
+    </main>
+
+    <nav
+      class="mobile-tabs navbar fixed-bottom d-md-none p-0"
+      aria-label="Mobile view switcher"
+    >
+      <div class="container-fluid px-0">
+        <div class="navbar-nav flex-row w-100">
+          <button
+            class="mobile-tabs__button nav-link flex-fill text-center py-3 px-0 mobile-tabs__button--active"
+            data-view="list"
+            type="button"
+          >
+            List
+          </button>
+          <button
+            class="mobile-tabs__button nav-link flex-fill text-center py-3 px-0"
+            data-view="map"
+            type="button"
+          >
+            Map
+          </button>
+        </div>
+      </div>
+    </nav>
   </body>
-</htm>
+</html>

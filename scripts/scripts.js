@@ -1,5 +1,6 @@
 const API_URL = "https://my.api.mockaroo.com/locations.json?key=935e86f0";
-const MOBILE_BREAKPOINT = 800;
+const MOCK_API_URL = "mock-api-response.json";
+const MOBILE_BREAKPOINT = 768;
 
 const state = {
   cardTemplate: null,
@@ -32,7 +33,6 @@ async function init() {
 // Stores frequently used DOM references so the rest of the module avoids repeated queries.
 function cacheElements() {
   elements.summaryTitle = document.getElementById("summary-title");
-  elements.summaryCopy = document.getElementById("summary-copy");
   elements.locationsStatus = document.getElementById("locations-status");
   elements.locationsList = document.getElementById("locations-list");
   elements.mapStage = document.getElementById("map-stage");
@@ -62,6 +62,12 @@ function bindEvents() {
 
   elements.mobileTabButtons.forEach((button) => {
     button.addEventListener("click", () => setMobileView(button.dataset.view));
+  });
+
+  elements.detailsOverlay.addEventListener("click", (event) => {
+    if (event.target === elements.detailsOverlay) {
+      closeDetails();
+    }
   });
 
   elements.mapDetailsButton.addEventListener("click", () => {
@@ -97,40 +103,46 @@ async function loadCardTemplate() {
 async function loadLocations() {
   setSummary(
     "Loading taco trucks...",
-    "Fetching locations from the locator service.",
   );
-  elements.locationsStatus.textContent = "Loading locations…";
+  elements.locationsStatus.textContent = "Loading locations...";
   state.selectedLocationId = null;
   updateMapDetailsButtonVisibility();
 
   try {
-    const response = await fetch(API_URL);
-    if (!response.ok) {
-      throw new Error(`Location request failed with ${response.status}.`);
-    }
-
-    const payload = await response.json();
-    state.locations = Array.isArray(payload)
-      ? payload.map(normalizeLocation)
-      : [];
-
-    renderSummary();
-    renderLocations();
-
-    if (state.locations.length === 0) {
-      renderMapPlaceholder("No locations were returned.");
-    }
+    const payload = await fetchLocationsFrom(API_URL);
+    applyLocationsPayload(payload);
   } catch (error) {
     console.error("Location loading failed.", error);
-    state.locations = [];
-    state.selectedLocationId = null;
-    setSummary(
-      "Unable to load taco trucks",
-      "The location service could not be reached.",
-    );
-    elements.locationsStatus.textContent =
-      "Unable to load locations right now.";
-    renderMapPlaceholder("Map unavailable until a location is loaded.");
+    try {
+      const fallbackPayload = await fetchLocationsFrom(MOCK_API_URL);
+      applyLocationsPayload(fallbackPayload);
+    } catch (fallbackError) {
+      console.error("Mock fallback loading failed.", fallbackError);
+      state.locations = [];
+      state.selectedLocationId = null;
+      renderSummary();
+      renderLocations();
+      renderMapPlaceholder("Map unavailable until a location is loaded.");
+    }
+  }
+}
+
+async function fetchLocationsFrom(url) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Location request failed with ${response.status}.`);
+  }
+
+  return response.json();
+}
+
+function applyLocationsPayload(payload) {
+  state.locations = Array.isArray(payload) ? payload.map(normalizeLocation) : [];
+  renderSummary();
+  renderLocations();
+
+  if (state.locations.length === 0) {
+    renderMapPlaceholder("No locations were returned.");
   }
 }
 
@@ -197,7 +209,6 @@ function renderSummary() {
 
   setSummary(
     `${headline}${postalCode ? ` in ${postalCode}` : ""}`,
-    "Choose a location card to load the map and view more details.",
   );
 }
 
@@ -229,10 +240,9 @@ function getPrimaryPostalCode() {
   return selectedCode;
 }
 
-// Sets the main headline and subcopy above the locator panels.
-function setSummary(title, copy) {
+// Sets the main headline
+function setSummary(title) {
   elements.summaryTitle.textContent = title;
-  elements.summaryCopy.textContent = copy;
 }
 
 // Renders the list of cards, marking the currently selected location when applicable.
@@ -317,9 +327,9 @@ function renderMap(location) {
   }
 
   elements.mapStage.innerHTML = `
-        <div class="map-loading">
+        <div class="map-loading d-flex flex-column align-items-center justify-content-center gap-3 h-100 p-4 text-center">
             <div class="map-loading__spinner"></div>
-            <p>Loading map for ${escapeHtml(location.name)}…</p>
+            <p>Loading map for ${escapeHtml(location.name)}...</p>
         </div>
     `;
 
@@ -331,7 +341,7 @@ function renderMap(location) {
 // Replaces the map panel with an empty-state or error message when no map should be shown.
 function renderMapPlaceholder(message) {
   elements.mapStage.innerHTML = `
-        <div class="map-placeholder">
+        <div class="d-flex flex-column align-items-center justify-content-center gap-3 h-100 p-4 text-center">
             <img src="assets/map-pin.png" alt="">
             <p>${escapeHtml(message)}</p>
         </div>
@@ -339,7 +349,13 @@ function renderMapPlaceholder(message) {
 }
 
 function updateMapDetailsButtonVisibility() {
-  elements.mapDetailsButton.hidden = !Boolean(state.selectedLocationId);
+  const shouldShow =
+    Boolean(state.selectedLocationId) &&
+    window.innerWidth < MOBILE_BREAKPOINT &&
+    state.activeMobileView === "map" &&
+    state.detailsLocationId === null;
+
+  elements.mapDetailsButton.hidden = !shouldShow;
 }
 
 function displayMapLocation(location) {
@@ -348,7 +364,7 @@ function displayMapLocation(location) {
 
   return `
         <iframe
-        class="map-image"
+        class="h-100 w-100 cover"
         title="${escapeAttribute(`${location.name} map`)}"
         style="border:0"
         loading="lazy"
@@ -377,9 +393,9 @@ function openDetails(location) {
 
   elements.detailsCard.innerHTML = `
     <div class="modal-content">
-      <div class="modal-body w-100 details-card__loading">
+      <div class="modal-body w-100 details-card__loading d-flex flex-column align-items-center justify-content-center gap-3 h-100 p-4 text-center">
         <div class="map-loading__spinner"></div>
-        <p class="mb-0">Loading full details…</p>
+        <p class="mb-0">Loading full details...</p>
       </div>
     </div>
   `;
@@ -429,16 +445,19 @@ function buildDetailsMarkup(location) {
       </div>
       <div class="modal-body pt-3">
       <div class="details-card__preview d-flex align-items-center justify-content-center">
-      <i class="fa-regular fa-image fa-8x text-secondary"></i>
+      <img
+        alt="Map preview for ${escapeAttribute(location.name)}"
+        class="w-100"
+      />
       </div>
       <h2 class="fs-3 fw-normal" id="details-title">${escapeHtml(location.name)}</h2>
-        <address class="details-card__address small">
+        <address class="d-flex flex-column small">
           <span>${escapeHtml(location.address || "")}</span>
           <span>${escapeHtml(`${location.city || ""}, ${location.state || ""} ${location.postal_code || ""}`.trim())}</span>
         </address>
-        <div class="details-card__meta d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="mt-md-1 mb-md-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
           ${phoneMarkup}
-          <button class="details-link btn btn-outline-primary btn-sm js-details-directions" data-location-id="${location.id}" type="button">
+          <button class="btn btn-secondary btn-sm js-details-directions" data-location-id="${location.id}" type="button">
             <i class="fa-solid fa-car"></i>
             <span>Get Directions</span>
           </button>
@@ -506,28 +525,47 @@ function buildStaticMapUrl(location, width, height) {
 // Toggles the mobile list/map view and keeps the tab button state aligned with the visible panel.
 function setMobileView(view) {
   state.activeMobileView = view;
+  const isDesktop = window.innerWidth >= MOBILE_BREAKPOINT;
 
   Object.entries(elements.mobilePanels).forEach(([panelView, panel]) => {
-    panel.classList.toggle(
-      "mobile-panel--active",
-      panelView === view || window.innerWidth >= MOBILE_BREAKPOINT,
-    );
+    const isVisible = isDesktop || panelView === view;
+    panel.classList.toggle("d-none", !isVisible);
+    panel.classList.toggle("d-block", isVisible);
   });
 
   elements.mobileTabButtons.forEach((button) => {
-    button.classList.toggle(
-      "mobile-tabs__button--active",
-      button.dataset.view === view,
-    );
+    const isActive = button.dataset.view === view;
+    button.classList.toggle("mobile-tabs__button--active", isActive);
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-current", isActive ? "page" : "false");
   });
+
+  updateMapDetailsButtonVisibility();
 }
 
 // Applies the correct panel visibility rules when crossing between desktop and mobile layouts.
 function syncLayoutMode() {
   const isDesktop = window.innerWidth >= MOBILE_BREAKPOINT;
   if (isDesktop) {
-    elements.mobilePanels.list.classList.add("mobile-panel--active");
-    elements.mobilePanels.map.classList.add("mobile-panel--active");
+    elements.mobilePanels.list.classList.remove("d-none");
+    elements.mobilePanels.map.classList.remove("d-none");
+    elements.mobilePanels.list.classList.add("d-block");
+    elements.mobilePanels.map.classList.add("d-block");
+    elements.mobileTabButtons.forEach((button) => {
+      button.classList.toggle(
+        "active",
+        button.dataset.view === state.activeMobileView,
+      );
+      button.classList.toggle(
+        "mobile-tabs__button--active",
+        button.dataset.view === state.activeMobileView,
+      );
+      button.setAttribute(
+        "aria-current",
+        button.dataset.view === state.activeMobileView ? "page" : "false",
+      );
+    });
+    updateMapDetailsButtonVisibility();
     return;
   }
 
