@@ -1,425 +1,430 @@
-const API_URL = "https://my.api.mockaroo.com/locations.json?key=935e86f0";
-const MOCK_API_URL = "mock-api-response.json";
-const MOBILE_BREAKPOINT = 768;
+(function () {
+  'use strict';
 
-const state = {
-  cardTemplate: null,
-  locations: [],
-  selectedLocationId: null,
-  detailsLocationId: null,
-  activeMobileView: "list",
-};
+  const API_URL = "https://my.api.mockaroo.com/locations.json?key=935e86f0";
+  const MOCK_API_URL = "mock-api-response.json";
+  const MOBILE_BREAKPOINT = 768;
 
-const elements = {};
-
-document.addEventListener("DOMContentLoaded", init);
-
-// Initializes the app
-async function init() {
-  cacheElements();
-  bindEvents();
-  syncLayoutMode();
-  updateMapDetailsButtonVisibility();
-
-  try {
-    state.cardTemplate = await loadCardTemplate();
-  } catch (error) {
-    console.error("Template loading failed.", error);
-  }
-
-  await loadLocations();
-}
-
-// Stores frequently used DOM references so the rest of the module avoids repeated queries.
-function cacheElements() {
-  elements.summaryTitle = document.getElementById("summary-title");
-  elements.locationsStatus = document.getElementById("locations-status");
-  elements.locationsError = document.getElementById("locations-error");
-  elements.locationsList = document.getElementById("locations-list");
-  elements.mapStage = document.getElementById("map-stage");
-  elements.detailsOverlay = document.getElementById("details-overlay");
-  elements.detailsCard = document.getElementById("details-card");
-  elements.mapDetailsButton = document.getElementById("map-details-button");
-  elements.mobileTabButtons = Array.from(
-    document.querySelectorAll(".mobile-tabs__button"),
-  );
-  elements.mobilePanels = {
-    list: document.getElementById("list-panel"),
-    map: document.getElementById("map-panel"),
+  const state = {
+    cardTemplate: null,
+    locations: [],
+    selectedLocationId: null,
+    detailsLocationId: null,
+    activeMobileView: "list",
   };
-  elements.detailsModal = bootstrap.Modal.getOrCreateInstance(
-    elements.detailsOverlay,
-    {
-      backdrop: false,
-      focus: true,
-    },
-  );
-}
 
-// Attaches all UI event listeners for list actions, overlay controls, mobile tabs, and responsive layout changes.
-function bindEvents() {
-  elements.locationsList.addEventListener("click", onLocationListClick);
-  elements.locationsList.addEventListener("keydown", onLocationListKeydown);
+  const elements = {};
 
-  elements.mobileTabButtons.forEach((button) => {
-    button.addEventListener("click", () => setMobileView(button.dataset.view));
-  });
+  document.addEventListener("DOMContentLoaded", init);
 
-  elements.detailsOverlay.addEventListener("click", (event) => {
-    if (event.target === elements.detailsOverlay) {
-      closeDetails();
-    }
-  });
-
-  elements.mapDetailsButton.addEventListener("click", () => {
-    openDetails(getLocationById(state.selectedLocationId));
-  });
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      closeDetails();
-    }
-  });
-
-  elements.detailsOverlay.addEventListener("hidden.bs.modal", () => {
-    state.detailsLocationId = null;
-    elements.detailsCard.innerHTML = "";
+  // Initializes the app
+  async function init() {
+    cacheElements();
+    bindEvents();
+    syncLayoutMode();
     updateMapDetailsButtonVisibility();
-  });
 
-  window.addEventListener("resize", syncLayoutMode);
-}
+    try {
+      state.cardTemplate = await loadCardTemplate();
+    } catch (error) {
+      console.error("Template loading failed.", error);
+    }
 
-// Fetches and compiles the Handlebars card template used to render the location list
-async function loadCardTemplate() {
-  const response = await fetch("templates/card.hbs");
-  if (!response.ok) {
-    throw new Error("Card template request failed.");
+    await loadLocations();
   }
 
-  const source = await response.text();
-  return Handlebars.compile(source);
-}
+  // Stores frequently used DOM references so the rest of the module avoids repeated queries.
+  function cacheElements() {
+    elements.summaryTitle = document.getElementById("summary-title");
+    elements.locationsStatus = document.getElementById("locations-status");
+    elements.locationsError = document.getElementById("locations-error");
+    elements.locationsList = document.getElementById("locations-list");
+    elements.mapStage = document.getElementById("map-stage");
+    elements.detailsOverlay = document.getElementById("details-overlay");
+    elements.detailsCard = document.getElementById("details-card");
+    elements.mapDetailsButton = document.getElementById("map-details-button");
+    elements.mobileTabButtons = Array.from(
+      document.querySelectorAll(".mobile-tabs__button"),
+    );
+    elements.mobilePanels = {
+      list: document.getElementById("list-panel"),
+      map: document.getElementById("map-panel"),
+    };
+    elements.detailsModal = bootstrap.Modal.getOrCreateInstance(
+      elements.detailsOverlay,
+      {
+        backdrop: false,
+        focus: true,
+      },
+    );
+  }
 
-// Gets location data from, applies api mock data if api fails
-async function loadLocations() {
-  setSummary("Loading taco trucks...");
-  setLocationsError("");
-  setLocationsStatus("Loading locations...", true);
-  state.selectedLocationId = null;
-  updateMapDetailsButtonVisibility();
+  // Attaches all UI event listeners for list actions, overlay controls, mobile tabs, and responsive layout changes.
+  function bindEvents() {
+    elements.locationsList.addEventListener("click", onLocationListClick);
+    elements.locationsList.addEventListener("keydown", onLocationListKeydown);
 
-  try {
-    const payload = await fetchLocationsFrom(API_URL);
+    elements.mobileTabButtons.forEach((button) => {
+      button.addEventListener("click", () =>
+        setMobileView(button.dataset.view),
+      );
+    });
+
+    elements.detailsOverlay.addEventListener("click", (event) => {
+      if (event.target === elements.detailsOverlay) {
+        closeDetails();
+      }
+    });
+
+    elements.mapDetailsButton.addEventListener("click", () => {
+      openDetails(getLocationById(state.selectedLocationId));
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        closeDetails();
+      }
+    });
+
+    elements.detailsOverlay.addEventListener("hidden.bs.modal", () => {
+      state.detailsLocationId = null;
+      elements.detailsCard.innerHTML = "";
+      updateMapDetailsButtonVisibility();
+    });
+
+    window.addEventListener("resize", syncLayoutMode);
+  }
+
+  // Fetches and compiles the Handlebars card template used to render the location list
+  async function loadCardTemplate() {
+    const response = await fetch("templates/card.hbs");
+    if (!response.ok) {
+      throw new Error("Card template request failed.");
+    }
+
+    const source = await response.text();
+    return Handlebars.compile(source);
+  }
+
+  // Gets location data from, applies api mock data if api fails
+  async function loadLocations() {
+    setSummary("Loading taco trucks...");
     setLocationsError("");
-    applyLocationsPayload(payload);
-  } catch (error) {
-    console.error("Location loading failed.", error);
+    setLocationsStatus("Loading locations...", true);
+    state.selectedLocationId = null;
+    updateMapDetailsButtonVisibility();
+
     try {
-      const fallbackPayload = await fetchLocationsFrom(MOCK_API_URL);
-      applyLocationsPayload(fallbackPayload);
-      setSummary("Using mock data, API fail");
-      setLocationsError("Using mock data, API fail");
-    } catch (fallbackError) {
-      console.error("Mock fallback loading failed.", fallbackError);
-      setSummary("Unable to load locations.");
-      setLocationsError("Unable to load locations.");
-      state.locations = [];
-      state.selectedLocationId = null;
-      renderSummary();
-      renderLocations();
-      renderMapPlaceholder("Map unavailable until a location is loaded.");
+      const payload = await fetchLocationsFrom(API_URL);
+      setLocationsError("");
+      applyLocationsPayload(payload);
+    } catch (error) {
+      console.error("Location loading failed.", error);
+      try {
+        const fallbackPayload = await fetchLocationsFrom(MOCK_API_URL);
+        applyLocationsPayload(fallbackPayload);
+        setSummary("Using mock data, API fail");
+        setLocationsError("Using mock data, API fail");
+      } catch (fallbackError) {
+        console.error("Mock fallback loading failed.", fallbackError);
+        setSummary("Unable to load locations.");
+        setLocationsError("Unable to load locations.");
+        state.locations = [];
+        state.selectedLocationId = null;
+        renderSummary();
+        renderLocations();
+        renderMapPlaceholder("Map unavailable until a location is loaded.");
+      }
     }
   }
-}
 
-// Fetch helper
-async function fetchLocationsFrom(url) {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Location request failed with ${response.status}.`);
+  // Fetch helper
+  async function fetchLocationsFrom(url) {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Location request failed with ${response.status}.`);
+    }
+
+    return response.json();
   }
 
-  return response.json();
-}
+  // Updates locations and re-renders components
+  function applyLocationsPayload(payload) {
+    state.locations = Array.isArray(payload)
+      ? payload.map(normalizeLocation)
+      : [];
+    renderSummary();
+    renderLocations();
 
-// Updates locations and re-renders components
-function applyLocationsPayload(payload) {
-  state.locations = Array.isArray(payload)
-    ? payload.map(normalizeLocation)
-    : [];
-  renderSummary();
-  renderLocations();
-
-  if (state.locations.length === 0) {
-    renderMapPlaceholder("No locations were returned.");
+    if (state.locations.length === 0) {
+      renderMapPlaceholder("No locations were returned.");
+    }
   }
-}
 
-// Normalizes API data into a more usable format
-function normalizeLocation(location) {
-  const hours = getHoursForLocation(location);
-  const todayName = getTodayName();
-  const todayKey = todayName.toLowerCase();
-  const openValue = location[`${todayKey}_open`];
-  const closeValue = location[`${todayKey}_close`];
-  const isOpenToday = Boolean(openValue && closeValue);
-  const phone = location.phone || "";
-
-  return {
-    ...location,
-    phone,
-    distance: location.distance || location.miles || "",
-    fullAddress: [
-      location.address,
-      `${location.city}, ${location.state} ${location.postal_code}`,
-    ]
-      .filter(Boolean)
-      .join(", "),
-    hours,
-    isOpenToday,
-    todaySummary: isOpenToday
-      ? `Open today until ${closeValue}`
-      : "Closed today",
-  };
-}
-
-// Builds a weekly hours array for a single location and flags the current day for emphasis
-function getHoursForLocation(location) {
-  const days = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday",
-  ];
-
-  return days.map((day) => {
-    const key = day.toLowerCase();
-    const open = location[`${key}_open`];
-    const close = location[`${key}_close`];
-    const label = open && close ? `${open} - ${close}` : "Closed";
+  // Normalizes API data into a more usable format
+  function normalizeLocation(location) {
+    const hours = getHoursForLocation(location);
+    const todayName = getTodayName();
+    const todayKey = todayName.toLowerCase();
+    const openValue = location[`${todayKey}_open`];
+    const closeValue = location[`${todayKey}_close`];
+    const isOpenToday = Boolean(openValue && closeValue);
+    const phone = location.phone || "";
 
     return {
-      day,
-      label,
-      isToday: day === getTodayName(),
+      ...location,
+      phone,
+      distance: location.distance || location.miles || "",
+      fullAddress: [
+        location.address,
+        `${location.city}, ${location.state} ${location.postal_code}`,
+      ]
+        .filter(Boolean)
+        .join(", "),
+      hours,
+      isOpenToday,
+      todaySummary: isOpenToday
+        ? `Open today until ${closeValue}`
+        : "Closed today",
     };
-  });
-}
+  }
 
-// Updates the page headline with the truck count and the dominant postal code from the current dataset
-function renderSummary() {
-  const count = state.locations.length;
-  const postalCode = getPrimaryPostalCode();
-  const headline =
-    count === 1 ? "Found 1 Taco Truck" : `Found ${count} Taco Trucks`;
+  // Builds a weekly hours array for a single location and flags the current day for emphasis
+  function getHoursForLocation(location) {
+    const days = [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ];
 
-  setSummary(`${headline}${postalCode ? ` in ${postalCode}` : ""}`);
-}
+    return days.map((day) => {
+      const key = day.toLowerCase();
+      const open = location[`${key}_open`];
+      const close = location[`${key}_close`];
+      const label = open && close ? `${open} - ${close}` : "Closed";
 
-// Finds the postal code that appears most often for header
-function getPrimaryPostalCode() {
-  const counts = new Map();
+      return {
+        day,
+        label,
+        isToday: day === getTodayName(),
+      };
+    });
+  }
 
-  state.locations.forEach((location) => {
-    if (!location.postal_code) {
+  // Updates the page headline with the truck count and the dominant postal code from the current dataset
+  function renderSummary() {
+    const count = state.locations.length;
+    const postalCode = getPrimaryPostalCode();
+    const headline =
+      count === 1 ? "Found 1 Taco Truck" : `Found ${count} Taco Trucks`;
+
+    setSummary(`${headline}${postalCode ? ` in ${postalCode}` : ""}`);
+  }
+
+  // Finds the postal code that appears most often for header
+  function getPrimaryPostalCode() {
+    const counts = new Map();
+
+    state.locations.forEach((location) => {
+      if (!location.postal_code) {
+        return;
+      }
+
+      counts.set(
+        location.postal_code,
+        (counts.get(location.postal_code) || 0) + 1,
+      );
+    });
+
+    let selectedCode = "";
+    let selectedCount = 0;
+
+    counts.forEach((count, postalCode) => {
+      if (count > selectedCount) {
+        selectedCode = postalCode;
+        selectedCount = count;
+      }
+    });
+
+    return selectedCode;
+  }
+
+  // Sets the main header
+  function setSummary(title) {
+    elements.summaryTitle.textContent = title;
+  }
+
+  // Renders the list of cards, marking the currently selected location when applicable
+  function renderLocations() {
+    if (state.locations.length === 0) {
+      elements.locationsList.innerHTML = "";
+      setLocationsStatus("No locations available.");
       return;
     }
 
-    counts.set(
-      location.postal_code,
-      (counts.get(location.postal_code) || 0) + 1,
-    );
-  });
+    const viewModel = {
+      locations: state.locations.map((location) => ({
+        ...location,
+        isSelected: location.id === state.selectedLocationId,
+      })),
+    };
 
-  let selectedCode = "";
-  let selectedCount = 0;
+    const markup = state.cardTemplate(viewModel);
+    elements.locationsList.innerHTML = markup;
+    setLocationsStatus("");
+  }
 
-  counts.forEach((count, postalCode) => {
-    if (count > selectedCount) {
-      selectedCode = postalCode;
-      selectedCount = count;
+  // Loading spinner for fetching locations
+  function setLocationsStatus(message, isLoading = false) {
+    const centeredClasses = [
+      "d-flex",
+      "flex-column",
+      "align-items-center",
+      "justify-content-center",
+      "h-100",
+    ];
+
+    elements.locationsStatus.classList.remove("locations-status--loading");
+    elements.locationsStatus.classList.remove(...centeredClasses);
+
+    if (!message) {
+      elements.locationsStatus.innerHTML = "";
+      elements.locationsStatus.classList.add("d-none");
+      elements.locationsList.classList.remove("d-none");
+      return;
     }
-  });
 
-  return selectedCode;
-}
+    elements.locationsStatus.classList.remove("d-none");
 
-// Sets the main header
-function setSummary(title) {
-  elements.summaryTitle.textContent = title;
-}
-
-// Renders the list of cards, marking the currently selected location when applicable
-function renderLocations() {
-  if (state.locations.length === 0) {
-    elements.locationsList.innerHTML = "";
-    setLocationsStatus("No locations available.");
-    return;
-  }
-
-  const viewModel = {
-    locations: state.locations.map((location) => ({
-      ...location,
-      isSelected: location.id === state.selectedLocationId,
-    })),
-  };
-
-  const markup = state.cardTemplate(viewModel);
-  elements.locationsList.innerHTML = markup;
-  setLocationsStatus("");
-}
-
-// Loading spinner for fetching locations
-function setLocationsStatus(message, isLoading = false) {
-  const centeredClasses = [
-    "d-flex",
-    "flex-column",
-    "align-items-center",
-    "justify-content-center",
-    "h-100",
-  ];
-
-  elements.locationsStatus.classList.remove("locations-status--loading");
-  elements.locationsStatus.classList.remove(...centeredClasses);
-
-  if (!message) {
-    elements.locationsStatus.innerHTML = "";
-    elements.locationsStatus.classList.add("d-none");
-    elements.locationsList.classList.remove("d-none");
-    return;
-  }
-
-  elements.locationsStatus.classList.remove("d-none");
-
-  if (isLoading) {
-    elements.locationsStatus.classList.add("locations-status--loading");
-    elements.locationsStatus.innerHTML = `
+    if (isLoading) {
+      elements.locationsStatus.classList.add("locations-status--loading");
+      elements.locationsStatus.innerHTML = `
       <div class="map-loading__spinner" aria-hidden="true"></div>
       <p class="mb-0">${escapeHtml(message)}</p>
     `;
+      elements.locationsList.classList.add("d-none");
+      return;
+    }
+
+    elements.locationsStatus.textContent = message;
+    elements.locationsStatus.classList.add(...centeredClasses);
     elements.locationsList.classList.add("d-none");
-    return;
   }
 
-  elements.locationsStatus.textContent = message;
-  elements.locationsStatus.classList.add(...centeredClasses);
-  elements.locationsList.classList.add("d-none");
-}
+  // Error message for for mobile
+  function setLocationsError(message) {
+    if (!message) {
+      elements.locationsError.textContent = "";
+      elements.locationsError.classList.add("d-none");
+      return;
+    }
 
-// Error message for for mobile
-function setLocationsError(message) {
-  if (!message) {
-    elements.locationsError.textContent = "";
-    elements.locationsError.classList.add("d-none");
-    return;
+    elements.locationsError.textContent = message;
+    elements.locationsError.classList.remove("d-none");
   }
 
-  elements.locationsError.textContent = message;
-  elements.locationsError.classList.remove("d-none");
-}
+  // Handles delegated clicks from the list for card actions
+  function onLocationListClick(event) {
+    const directionsButton = event.target.closest(".js-directions");
+    if (directionsButton) {
+      event.stopPropagation();
+      openDirections(getLocationById(directionsButton.dataset.locationId));
+      return;
+    }
 
-// Handles delegated clicks from the list for card actions
-function onLocationListClick(event) {
-  const directionsButton = event.target.closest(".js-directions");
-  if (directionsButton) {
-    event.stopPropagation();
-    openDirections(getLocationById(directionsButton.dataset.locationId));
-    return;
+    const moreInfoButton = event.target.closest(".js-more-info");
+    if (moreInfoButton) {
+      event.stopPropagation();
+      openDetails(getLocationById(moreInfoButton.dataset.locationId));
+      return;
+    }
+
+    const card = event.target.closest(".js-location-card");
+    if (card) {
+      selectLocation(getLocationById(card.dataset.locationId));
+    }
   }
 
-  const moreInfoButton = event.target.closest(".js-more-info");
-  if (moreInfoButton) {
-    event.stopPropagation();
-    openDetails(getLocationById(moreInfoButton.dataset.locationId));
-    return;
-  }
+  // Lets keyboard users select a focused card with Enter or Space
+  function onLocationListKeydown(event) {
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
 
-  const card = event.target.closest(".js-location-card");
-  if (card) {
+    const card = event.target.closest(".js-location-card");
+    if (!card) {
+      return;
+    }
+
+    event.preventDefault();
     selectLocation(getLocationById(card.dataset.locationId));
   }
-}
 
-// Lets keyboard users select a focused card with Enter or Space
-function onLocationListKeydown(event) {
-  if (event.key !== "Enter" && event.key !== " ") {
-    return;
+  // Marks a location as selected, re-renders the list state, and loads its map
+  function selectLocation(location) {
+    if (!location) {
+      return;
+    }
+
+    state.selectedLocationId = location.id;
+    closeDetails();
+    updateMapDetailsButtonVisibility();
+    renderLocations();
+    renderMap(location);
+
+    if (window.innerWidth < MOBILE_BREAKPOINT) {
+      setMobileView("map");
+    }
   }
 
-  const card = event.target.closest(".js-location-card");
-  if (!card) {
-    return;
-  }
+  // Shows a loading state and then shows map
+  function renderMap(location) {
+    if (!location) {
+      renderMapPlaceholder("Click a location card to load a map.");
+      return;
+    }
 
-  event.preventDefault();
-  selectLocation(getLocationById(card.dataset.locationId));
-}
-
-// Marks a location as selected, re-renders the list state, and loads its map
-function selectLocation(location) {
-  if (!location) {
-    return;
-  }
-
-  state.selectedLocationId = location.id;
-  closeDetails();
-  updateMapDetailsButtonVisibility();
-  renderLocations();
-  renderMap(location);
-
-  if (window.innerWidth < MOBILE_BREAKPOINT) {
-    setMobileView("map");
-  }
-}
-
-// Shows a loading state and then shows map
-function renderMap(location) {
-  if (!location) {
-    renderMapPlaceholder("Click a location card to load a map.");
-    return;
-  }
-
-  elements.mapStage.innerHTML = `
+    elements.mapStage.innerHTML = `
         <div class="map-loading d-flex flex-column align-items-center justify-content-center gap-3 h-100 p-4 text-center">
             <div class="map-loading__spinner"></div>
             <p>Loading map for ${escapeHtml(location.name)}...</p>
         </div>
     `;
 
-  window.setTimeout(() => {
-    elements.mapStage.innerHTML = displayMapLocation(location);
-  }, 120);
-}
+    window.setTimeout(() => {
+      elements.mapStage.innerHTML = displayMapLocation(location);
+    }, 120);
+  }
 
-// Replaces the map panel with an empty-state or error message when no map should be shown.
-function renderMapPlaceholder(message) {
-  elements.mapStage.innerHTML = `
+  // Replaces the map panel with an empty-state or error message when no map should be shown.
+  function renderMapPlaceholder(message) {
+    elements.mapStage.innerHTML = `
         <div class="d-flex flex-column align-items-center justify-content-center gap-3 h-100 p-4 text-center">
             <p>${escapeHtml(message)}</p>
         </div>
     `;
-}
+  }
 
-function updateMapDetailsButtonVisibility() {
-  const shouldShow =
-    Boolean(state.selectedLocationId) &&
-    window.innerWidth < MOBILE_BREAKPOINT &&
-    state.activeMobileView === "map" &&
-    state.detailsLocationId === null;
+  function updateMapDetailsButtonVisibility() {
+    const shouldShow =
+      Boolean(state.selectedLocationId) &&
+      window.innerWidth < MOBILE_BREAKPOINT &&
+      state.activeMobileView === "map" &&
+      state.detailsLocationId === null;
 
-  elements.mapDetailsButton.hidden = !shouldShow;
-}
+    elements.mapDetailsButton.hidden = !shouldShow;
+  }
 
-// Displays the map for a given location
-function displayMapLocation(location) {
-  const latitude = encodeURIComponent(location.latitude);
-  const longitude = encodeURIComponent(location.longitude);
+  // Displays the map for a given location
+  function displayMapLocation(location) {
+    const latitude = encodeURIComponent(location.latitude);
+    const longitude = encodeURIComponent(location.longitude);
 
-  return `
+    return `
         <iframe
         class="h-100 w-100 cover"
         title="${escapeAttribute(`${location.name} map`)}"
@@ -429,26 +434,26 @@ function displayMapLocation(location) {
         src="https://www.google.com/maps?q=${latitude},${longitude}&z=15&output=embed">
         </iframe>
     `;
-}
-
-// Opens the details modal
-function openDetails(location) {
-  if (!location) {
-    return;
   }
 
-  const isAlreadySelected =
-    String(state.selectedLocationId) === String(location.id);
+  // Opens the details modal
+  function openDetails(location) {
+    if (!location) {
+      return;
+    }
 
-  state.detailsLocationId = location.id;
-  state.selectedLocationId = location.id;
-  renderLocations();
-  updateMapDetailsButtonVisibility();
-  if (!isAlreadySelected) {
-    renderMap(location);
-  }
+    const isAlreadySelected =
+      String(state.selectedLocationId) === String(location.id);
 
-  elements.detailsCard.innerHTML = `
+    state.detailsLocationId = location.id;
+    state.selectedLocationId = location.id;
+    renderLocations();
+    updateMapDetailsButtonVisibility();
+    if (!isAlreadySelected) {
+      renderMap(location);
+    }
+
+    elements.detailsCard.innerHTML = `
     <div class="modal-content">
       <div class="modal-body w-100 details-card__loading d-flex flex-column align-items-center justify-content-center gap-3 h-100 p-4 text-center">
         <div class="map-loading__spinner"></div>
@@ -456,37 +461,37 @@ function openDetails(location) {
       </div>
     </div>
   `;
-  elements.detailsModal.show();
+    elements.detailsModal.show();
 
-  if (window.innerWidth < MOBILE_BREAKPOINT) {
-    setMobileView("map");
+    if (window.innerWidth < MOBILE_BREAKPOINT) {
+      setMobileView("map");
+    }
+
+    if (state.detailsLocationId !== location.id) {
+      return;
+    }
+
+    elements.detailsCard.innerHTML = buildDetailsMarkup(location);
+    elements.detailsCard.focus();
   }
 
-  if (state.detailsLocationId !== location.id) {
-    return;
+  // Close details modal
+  function closeDetails() {
+    elements.detailsModal.hide();
   }
 
-  elements.detailsCard.innerHTML = buildDetailsMarkup(location);
-  elements.detailsCard.focus();
-}
-
-// Close details modal
-function closeDetails() {
-  elements.detailsModal.hide();
-}
-
-// Markup for details modal
-function buildDetailsMarkup(location) {
-  const phoneMarkup = location.phone
-    ? `
+  // Markup for details modal
+  function buildDetailsMarkup(location) {
+    const phoneMarkup = location.phone
+      ? `
         <a class="btn btn-secondary btn-sm p-0" href="tel:${escapeHtml(location.phone)}">
             <i class="fa-solid fa-square-phone"></i>
             <span>${escapeHtml(location.phone)}</span>
         </a>
     `
-    : "";
+      : "";
 
-  return `
+    return `
     <div class="modal-content border-0 shadow">
       <div class="modal-header border-0 pb-0">
       <button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -525,117 +530,118 @@ function buildDetailsMarkup(location) {
       </div>
     </div>
     `;
-}
-
-// Handles click events on the details modal
-document.addEventListener("click", (event) => {
-  const directionsButton = event.target.closest(".js-details-directions");
-  if (directionsButton) {
-    openDirections(getLocationById(directionsButton.dataset.locationId));
-    return;
   }
 
-  const fullDetailsButton = event.target.closest(".js-full-details");
-  if (fullDetailsButton) {
-    const url = fullDetailsButton.dataset.url;
-    if (url) {
-      window.open(url, "_blank", "noopener,noreferrer");
+  // Handles click events on the details modal
+  document.addEventListener("click", (event) => {
+    const directionsButton = event.target.closest(".js-details-directions");
+    if (directionsButton) {
+      openDirections(getLocationById(directionsButton.dataset.locationId));
+      return;
     }
-  }
-});
 
-// Opens Google Maps directions in a new tab using the selected location coordinates
-function openDirections(location) {
-  if (!location) {
-    return;
-  }
-
-  const lat = location.latitude;
-  const lng = location.longitude;
-  const destination = `${lat},${lng}`;
-  window.open(
-    `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${destination}`,
-    "_blank",
-    "noopener,noreferrer",
-  );
-}
-
-// Toggles the mobile list/map view and keeps the tab button state aligned with the visible panel
-function setMobileView(view) {
-  state.activeMobileView = view;
-  const isDesktop = window.innerWidth >= MOBILE_BREAKPOINT;
-
-  Object.entries(elements.mobilePanels).forEach(([panelView, panel]) => {
-    const isVisible = isDesktop || panelView === view;
-    panel.classList.toggle("d-none", !isVisible);
-    panel.classList.toggle("d-block", isVisible);
+    const fullDetailsButton = event.target.closest(".js-full-details");
+    if (fullDetailsButton) {
+      const url = fullDetailsButton.dataset.url;
+      if (url) {
+        window.open(url, "_blank", "noopener,noreferrer");
+      }
+    }
   });
 
-  elements.mobileTabButtons.forEach((button) => {
-    const isActive = button.dataset.view === view;
-    button.classList.toggle("mobile-tabs__button--active", isActive);
-    button.classList.toggle("active", isActive);
-    button.setAttribute("aria-current", isActive ? "page" : "false");
-  });
+  // Opens Google Maps directions in a new tab using the selected location coordinates
+  function openDirections(location) {
+    if (!location) {
+      return;
+    }
 
-  updateMapDetailsButtonVisibility();
-}
-
-// Applies the correct panel visibility rules when crossing between desktop and mobile layouts
-function syncLayoutMode() {
-  const isDesktop = window.innerWidth >= MOBILE_BREAKPOINT;
-  if (!isDesktop) {
-    setMobileView(state.activeMobileView);
-    return;
+    const lat = location.latitude;
+    const lng = location.longitude;
+    const destination = `${lat},${lng}`;
+    window.open(
+      `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=${destination}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
   }
-  elements.mobilePanels.list.classList.remove("d-none");
-  elements.mobilePanels.map.classList.remove("d-none");
-  elements.mobilePanels.list.classList.add("d-block");
-  elements.mobilePanels.map.classList.add("d-block");
-  elements.mobileTabButtons.forEach((button) => {
-    button.classList.toggle(
-      "active",
-      button.dataset.view === state.activeMobileView,
+
+  // Toggles the mobile list/map view and keeps the tab button state aligned with the visible panel
+  function setMobileView(view) {
+    state.activeMobileView = view;
+    const isDesktop = window.innerWidth >= MOBILE_BREAKPOINT;
+
+    Object.entries(elements.mobilePanels).forEach(([panelView, panel]) => {
+      const isVisible = isDesktop || panelView === view;
+      panel.classList.toggle("d-none", !isVisible);
+      panel.classList.toggle("d-block", isVisible);
+    });
+
+    elements.mobileTabButtons.forEach((button) => {
+      const isActive = button.dataset.view === view;
+      button.classList.toggle("mobile-tabs__button--active", isActive);
+      button.classList.toggle("active", isActive);
+      button.setAttribute("aria-current", isActive ? "page" : "false");
+    });
+
+    updateMapDetailsButtonVisibility();
+  }
+
+  // Applies the correct panel visibility rules when crossing between desktop and mobile layouts
+  function syncLayoutMode() {
+    const isDesktop = window.innerWidth >= MOBILE_BREAKPOINT;
+    if (!isDesktop) {
+      setMobileView(state.activeMobileView);
+      return;
+    }
+    elements.mobilePanels.list.classList.remove("d-none");
+    elements.mobilePanels.map.classList.remove("d-none");
+    elements.mobilePanels.list.classList.add("d-block");
+    elements.mobilePanels.map.classList.add("d-block");
+    elements.mobileTabButtons.forEach((button) => {
+      button.classList.toggle(
+        "active",
+        button.dataset.view === state.activeMobileView,
+      );
+      button.classList.toggle(
+        "mobile-tabs__button--active",
+        button.dataset.view === state.activeMobileView,
+      );
+      button.setAttribute(
+        "aria-current",
+        button.dataset.view === state.activeMobileView ? "page" : "false",
+      );
+    });
+    updateMapDetailsButtonVisibility();
+  }
+
+  // Looks up a location object by id
+  function getLocationById(locationId) {
+    return (
+      state.locations.find(
+        (location) => String(location.id) === String(locationId),
+      ) || null
     );
-    button.classList.toggle(
-      "mobile-tabs__button--active",
-      button.dataset.view === state.activeMobileView,
+  }
+
+  // Returns the current weekday name so today's hours can be highlighted
+  function getTodayName() {
+    return new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(
+      new Date(),
     );
-    button.setAttribute(
-      "aria-current",
-      button.dataset.view === state.activeMobileView ? "page" : "false",
-    );
-  });
-  updateMapDetailsButtonVisibility();
-}
+  }
 
-// Looks up a location object by id
-function getLocationById(locationId) {
-  return (
-    state.locations.find(
-      (location) => String(location.id) === String(locationId),
-    ) || null
-  );
-}
+  // Escapes user-visible strings before inserting them into HTML
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
 
-// Returns the current weekday name so today's hours can be highlighted
-function getTodayName() {
-  return new Intl.DateTimeFormat("en-US", { weekday: "long" }).format(
-    new Date(),
-  );
-}
-
-// Escapes user-visible strings before inserting them into HTML
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
-// Escapes values that will be inserted into HTML attributes.
-function escapeAttribute(value) {
-  return escapeHtml(value);
-}
+  // Escapes values that will be inserted into HTML attributes.
+  function escapeAttribute(value) {
+    return escapeHtml(value);
+  }
+})();
